@@ -173,7 +173,14 @@
                         if (matcher.findBestMatch(det.descriptor).label === localStorage.getItem('username')) {
                             tahap = 3; prog.style.width = "100%"; pPersen.innerText = "100%";
                             
-                            // MATIKAN STREAM VIDEO (Kamera Berhenti Merekam)
+                            // 1. AMBIL FOTO DULU SEBELUM KAMERA DIMATIKAN
+                            const tc = document.createElement('canvas'); 
+                            tc.width = dim.width; 
+                            tc.height = dim.height;
+                            tc.getContext('2d').drawImage(video, 0, 0);
+                            const fotoTercapture = tc.toDataURL('image/jpeg', 0.8);
+                            
+                            // 2. SETELAH FOTO DIAMBIL, BARU MATIKAN KAMERA
                             if (video.srcObject) {
                                 video.srcObject.getTracks().forEach(track => track.stop());
                             }
@@ -182,20 +189,17 @@
                             const waktuSkrg = new Date();
                             const jamCapture = `${String(waktuSkrg.getHours()).padStart(2,'0')}.${String(waktuSkrg.getMinutes()).padStart(2,'0')}`;
                             
-                            teks.innerHTML = `<i class="fa-solid fa-circle-check mr-2"></i> Terverifikasi Jam ${jamCapture} WIB! Menyimpan...`;
-                            teks.className = "text-center text-sm font-bold text-green-600 bg-green-50 py-2.5 rounded-xl border border-green-100 mb-4 fade-in";
+                            teks.innerHTML = `<i class="fa-solid fa-cloud-upload fa-bounce mr-2"></i> Identitas Cocok! Menyimpan...`;
+                            teks.className = "text-center text-sm font-bold text-green-600 bg-green-50 py-2.5 rounded-xl border border-green-100 mb-6 fade-in";
                             document.getElementById('overlaySukses').classList.remove('hidden');
                             document.getElementById('lineScan').style.display = "none";
-                            ctx.clearRect(0, 0, canvas.width, canvas.height);
                             
-                            const tc = document.createElement('canvas'); tc.width = dim.width; tc.height = dim.height;
-                            tc.getContext('2d').drawImage(video, 0, 0);
-                            
+                            // 3. KIRIM DATA KE SERVER
                             fetch(URL_GAS, { 
                                 method: 'POST', 
                                 body: JSON.stringify({ 
                                     action: 'presensi', 
-                                    foto: tc.toDataURL('image/jpeg', 0.8), 
+                                    foto: fotoTercapture, // Masukkan foto yang sudah diamankan tadi
                                     jenis: localStorage.getItem('jenis_absen_kirim'), 
                                     username: localStorage.getItem('username'), 
                                     nama: localStorage.getItem('user_nama'), 
@@ -210,7 +214,7 @@
                             });
                         } else {
                             teks.innerHTML = '<i class="fa-solid fa-user-slash mr-2"></i> Wajah Tidak Dikenali!';
-                            teks.className = "text-center text-sm font-bold text-red-600 bg-red-50 py-2.5 rounded-xl border border-red-100 mb-4";
+                            teks.className = "text-center text-sm font-bold text-red-600 bg-red-50 py-2.5 rounded-xl border border-red-100 mb-6";
                             tahap = 1; prog.style.width = "20%"; pPersen.innerText = "20%";
                             setTimeout(() => { teks.innerHTML = '<i class="fa-solid fa-eye mr-2"></i> Silakan Berkedip Ulang'; }, 2000);
                         }
