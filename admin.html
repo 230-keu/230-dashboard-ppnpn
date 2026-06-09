@@ -111,7 +111,7 @@
                             <th class="p-3 md:p-4">Nama Pos Jaga</th>
                             <th class="p-3 md:p-4">Titik Koordinat (Lat, Long)</th>
                             <th class="p-3 md:p-4 text-center">Radius</th>
-                            <th class="p-3 md:p-4 text-center">Aksi</th>
+                            <th class="p-3 md:p-4 text-center">Aksi Panel</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 text-slate-700 font-medium">
@@ -254,14 +254,53 @@
                             <td class="p-3 md:p-4 font-mono text-slate-500 text-xs">${loc.latitude}, <br class="md:hidden">${loc.longitude}</td>
                             <td class="p-3 md:p-4 text-center"><span class="bg-slate-100 px-3 py-1 rounded-lg text-xs font-bold text-slate-600">${loc.radius} Meter</span></td>
                             <td class="p-3 md:p-4 text-center">
-                                <button onclick="hapusPos('${loc.id}')" class="bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-600 px-3 py-1.5 rounded-lg font-bold text-xs transition-colors shadow-sm">
-                                    <i class="fa-solid fa-trash"></i> <span class="hidden md:inline">Hapus</span>
-                                </button>
+                                <div class="flex justify-center gap-2">
+                                    <button onclick="editRadius('${loc.id}', '${loc.radius}', '${loc.nama_lokasi}')" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded-lg font-bold text-xs transition-colors shadow-sm" title="Ubah Radius">
+                                        <i class="fa-solid fa-pen-to-square md:mr-1"></i> <span class="hidden md:inline">Ubah</span>
+                                    </button>
+                                    <button onclick="hapusPos('${loc.id}')" class="bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-600 px-3 py-1.5 rounded-lg font-bold text-xs transition-colors shadow-sm" title="Hapus Pos">
+                                        <i class="fa-solid fa-trash"></i> <span class="hidden md:inline">Hapus</span>
+                                    </button>
+                                </div>
                             </td>
                         </tr>`;
                 });
                 document.querySelector('#tabelPos tbody').innerHTML = html || '<tr><td colspan="4" class="p-8 text-center text-slate-400">Belum ada titik pos jaga.</td></tr>';
             });
+        }
+
+        // --- FUNGSI UPDATE/EDIT RADIUS POS ---
+        function editRadius(id, currentRadius, namaPos) {
+            const newRadius = prompt(`Masukkan Radius Baru untuk ${namaPos} (Meter):`, currentRadius);
+            
+            // Jika user menekan tombol cancel/batal
+            if (newRadius === null) return; 
+
+            const radiusAngka = parseInt(newRadius.trim());
+            if (isNaN(radiusAngka) || radiusAngka <= 0) {
+                alert("⚠️ Input tidak valid! Radius harus berupa angka bulat positif.");
+                return;
+            }
+
+            // Kirim request pembaruan ke API Proxy Vercel
+            fetch(URL_GAS, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'update_radius',
+                    id: id,
+                    radius: radiusAngka
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    alert(`✅ Sukses memperbarui radius ${namaPos} menjadi ${radiusAngka} Meter.`);
+                    muatPos(); // Perbarui tampilan tabel lokasi secara otomatis
+                } else {
+                    alert("❌ Gagal memperbarui data: " + data.message);
+                }
+            })
+            .catch(() => alert("❌ Gagal terhubung ke server database."));
         }
 
         function tambahPos() {
