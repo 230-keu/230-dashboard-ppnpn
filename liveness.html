@@ -101,6 +101,7 @@
         const MODEL_URL = 'https://arngoding.github.io/aset-presensi-230/weights'; 
         const URL_GAS = "/api/proxy";
         const URL_DASHBOARD = "dashboard.html";
+        const URL_LOGIN = "index.html";
 
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
@@ -111,7 +112,9 @@
         
         let tahap = 0;
         let matcher = null;
-
+ 
+        const userUsername = localStorage.getItem('username');
+        
         // Pengecekan Keamanan (Bouncer)
         if (!userUsername) {
             window.location.href = URL_LOGIN;
