@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Panel Kendali Admin - Portal Presensi</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://arngoding.github.io/aset-presensi-230/face-api.min.js"></script>
+
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); }
+        
+        /* Animasi Transisi Halus */
+        .fade-in { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Optimasi Scrollbar Tabel untuk HP */
+        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .table-scroll::-webkit-scrollbar { height: 6px; }
+        .table-scroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+        
+        /* Navigasi Tab Aktif */
+        .tab-btn.active { color: #2563eb; border-bottom: 3px solid #2563eb; font-weight: 700; background: linear-gradient(to top, #eff6ff, transparent); }
+    </style>
+</head>
+<body class="min-h-screen flex items-start justify-center p-2 md:p-8 bg-[url('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center bg-fixed relative">
+    
+    <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm z-0"></div>
+
+    <div id="utamaAdmin" class="glass-panel w-full max-w-5xl rounded-[1.5rem] md:rounded-[2rem] shadow-2xl overflow-hidden relative z-10 border border-white/20 p-4 md:p-10 fade-in block">
+        
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8 gap-4 border-b border-slate-200 pb-4 md:pb-6 text-center md:text-left">
+            <div class="flex flex-col md:flex-row items-center gap-3 md:gap-4">
+                <div class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-tr from-slate-800 to-blue-900 text-white flex items-center justify-center shadow-lg">
+                    <i class="fa-solid fa-user-shield text-xl md:text-2xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl md:text-2xl font-bold text-slate-800 tracking-tight">Panel Admin</h2>
+                    <p class="text-slate-500 text-[10px] md:text-xs font-medium mt-0.5 uppercase tracking-wider">Kanwil DJP Kalimantan Barat</p>
+                </div>
+            </div>
+            <button onclick="logoutAdmin()" class="w-full md:w-auto bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold py-2.5 px-6 rounded-xl shadow-sm transition-all active:scale-95 flex items-center justify-center gap-2 text-sm">
+                <i class="fa-solid fa-lock"></i> Kunci & Keluar
+            </button>
+        </div>
+
+        <div class="flex flex-nowrap mb-6 border-b border-slate-200 overflow-x-auto table-scroll">
+            <button onclick="bukaTab('tabPPNPN', this)" class="tab-btn active px-4 md:px-6 py-3 text-slate-500 font-semibold text-sm transition-all whitespace-nowrap rounded-t-lg">
+                <i class="fa-solid fa-users mr-2"></i>Data Pegawai
+            </button>
+            <button onclick="bukaTab('tabLokasi', this)" class="tab-btn px-4 md:px-6 py-3 text-slate-500 font-semibold text-sm transition-all whitespace-nowrap rounded-t-lg">
+                <i class="fa-solid fa-map-location-dot mr-2"></i>Pos Jaga (GPS)
+            </button>
+        </div>
+
+        <div id="tabPPNPN" class="tab-content fade-in block">
+            <div class="bg-blue-50/50 p-4 md:p-5 rounded-2xl border border-blue-100 mb-6 shadow-inner">
+                <h3 class="text-sm font-bold text-blue-800 mb-3"><i class="fa-solid fa-user-plus mr-1"></i> Tambah Pegawai Baru</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                    <input type="text" id="usrBaru" placeholder="Username (Tanpa Spasi)" autocapitalize="none" autocorrect="off" class="w-full px-4 py-2.5 rounded-xl border border-blue-200 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm shadow-sm">
+                    <input type="text" id="namaBaru" placeholder="Nama Lengkap" class="w-full px-4 py-2.5 rounded-xl border border-blue-200 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm shadow-sm">
+                    <input type="password" id="passBaru" placeholder="Password" class="w-full px-4 py-2.5 rounded-xl border border-blue-200 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm shadow-sm">
+                    <button onclick="tambahPegawai()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl shadow-md transition-all active:scale-95 text-sm flex items-center justify-center gap-2">
+                        Simpan <i class="fa-solid fa-floppy-disk"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-scroll bg-white rounded-2xl border border-slate-200 shadow-sm w-full">
+                <table id="tabelPegawai" class="w-full min-w-[600px] text-left border-collapse text-sm whitespace-nowrap">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 uppercase tracking-wider text-[11px] font-bold">
+                            <th class="p-3 md:p-4">Username</th>
+                            <th class="p-3 md:p-4">Nama Lengkap</th>
+                            <th class="p-3 md:p-4 text-center">Status DNA</th>
+                            <th class="p-3 md:p-4 text-center">Aksi (Panel)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-slate-700 font-medium">
+                        <tr><td colspan="4" class="p-8 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><br>Memuat Data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tabLokasi" class="tab-content fade-in hidden">
+            <div class="bg-indigo-50/50 p-4 md:p-5 rounded-2xl border border-indigo-100 mb-6 shadow-inner">
+                <h3 class="text-sm font-bold text-indigo-800 mb-3"><i class="fa-solid fa-thumbtack mr-1"></i> Tambah Titik Pos Jaga</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                    <input type="text" id="namaPos" placeholder="Nama Pos (Cth: Pos Depan)" class="w-full px-4 py-2.5 rounded-xl border border-indigo-200 bg-white focus:ring-2 focus:ring-indigo-500 outline-none text-sm shadow-sm lg:col-span-2">
+                    <input type="text" id="lat" placeholder="Latitude (-0.02xxxx)" class="w-full px-4 py-2.5 rounded-xl border border-indigo-200 bg-white focus:ring-2 focus:ring-indigo-500 outline-none text-sm shadow-sm">
+                    <input type="text" id="lng" placeholder="Longitude (109.3xxxxx)" class="w-full px-4 py-2.5 rounded-xl border border-indigo-200 bg-white focus:ring-2 focus:ring-indigo-500 outline-none text-sm shadow-sm">
+                    <div class="flex gap-2">
+                        <input type="number" id="rad" placeholder="Radius (m)" value="50" class="w-full md:w-20 px-3 py-2.5 rounded-xl border border-indigo-200 bg-white focus:ring-2 focus:ring-indigo-500 outline-none text-sm shadow-sm text-center">
+                        <button onclick="tambahPos()" class="w-full md:flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl shadow-md transition-all active:scale-95 text-sm flex items-center justify-center gap-1">
+                            Simpan
+                        </button>
+                    </div>
+                </div>
+                <p class="text-[10px] text-indigo-500 mt-3"><i class="fa-solid fa-circle-info"></i> Dapatkan nilai Latitude & Longitude dengan mengklik kanan titik lokasi di Google Maps.</p>
+            </div>
+
+            <div class="table-scroll bg-white rounded-2xl border border-slate-200 shadow-sm w-full">
+                <table id="tabelPos" class="w-full min-w-[600px] text-left border-collapse text-sm whitespace-nowrap">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 uppercase tracking-wider text-[11px] font-bold">
+                            <th class="p-3 md:p-4">Nama Pos Jaga</th>
+                            <th class="p-3 md:p-4">Titik Koordinat (Lat, Long)</th>
+                            <th class="p-3 md:p-4 text-center">Radius</th>
+                            <th class="p-3 md:p-4 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-slate-700 font-medium">
+                        <tr><td colspan="4" class="p-8 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><br>Memuat Data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="areaKamera" class="glass-panel w-full max-w-md rounded-[2rem] shadow-2xl overflow-hidden relative z-20 border border-white/20 fade-in hidden p-4 md:p-6 mx-2">
+        <div class="text-center mb-6">
+            <h3 class="text-xl font-bold text-slate-800 tracking-tight">Perekaman DNA Wajah</h3>
+            <p class="text-slate-500 text-sm mt-1">Target Pegawai: <br><span id="namaTarget" class="font-bold text-blue-600 text-lg"></span></p>
+        </div>
+        
+        <div id="statusAI" class="text-center text-sm font-bold text-amber-600 bg-amber-50 py-2.5 rounded-xl border border-amber-200 mb-4 px-2">
+            <i class="fa-solid fa-microchip fa-spin mr-2"></i> Memuat Mesin AI...
+        </div>
+        
+        <div id="video-container" class="relative rounded-2xl overflow-hidden bg-black aspect-video border-4 border-slate-200 shadow-lg mb-4">
+            <video id="video" class="w-full h-full object-cover scale-x-[-1]" autoplay muted playsinline></video>
+            <canvas id="canvas" class="absolute top-0 left-0 w-full h-full z-10 scale-x-[-1]"></canvas>
+        </div>
+        
+        <button id="btnAmbilDNA" onclick="simpanDNA()" class="hidden w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold py-3.5 rounded-xl shadow-lg transform transition-all active:scale-95 mb-3 items-center justify-center gap-2 text-sm md:text-base">
+            <i class="fa-solid fa-camera-retro"></i> Simpan DNA Wajah Sekarang
+        </button>
+        
+        <button onclick="tutupKamera()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-xl transition-all active:scale-95 text-sm md:text-base">
+            Batal & Kembali
+        </button>
+    </div>
+
+    <script>
+        // MASUKKAN KETIGA URL MILIK ANDA DI SINI
+        const URL_GAS = "/api/proxy";
+        const MODEL_URL = 'https://arngoding.github.io/aset-presensi-230/weights'; 
+        const URL_LOGIN = "index.html";
+
+        // --- SISTEM PENGAMAN HALAMAN (BOUNCER) ---
+        if(localStorage.getItem('username') !== 'admin') {
+            window.location.href = URL_LOGIN;
+        }
+
+        function logoutAdmin() {
+            localStorage.clear();
+            window.location.href = URL_LOGIN;
+        }
+
+        // --- TAB NAVIGATION ---
+        function bukaTab(idTab, elemen) {
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.remove('block');
+                el.classList.add('hidden');
+            });
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(idTab).classList.remove('hidden');
+            document.getElementById(idTab).classList.add('block');
+            elemen.classList.add('active');
+        }
+
+        // --- CRUD PEGAWAI ---
+        function muatPegawai() {
+            fetch(URL_GAS + '?action=get_users')
+            .then(res => res.json())
+            .then(data => {
+                let html = '';
+                data.forEach(user => {
+                    if(user.username !== 'admin') {
+                        const badgeColor = user.status_wajah === 'Sudah' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200';
+                        const iconWajah = user.status_wajah === 'Sudah' ? '<i class="fa-solid fa-check-circle"></i> Terdaftar' : '<i class="fa-solid fa-xmark-circle"></i> Belum';
+                        
+                        html += `
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="p-3 md:p-4 font-mono text-blue-600 font-bold">@${user.username}</td>
+                                <td class="p-3 md:p-4">${user.nama}</td>
+                                <td class="p-3 md:p-4 text-center">
+                                    <span class="px-3 py-1 rounded-full text-xs font-bold border ${badgeColor}">${iconWajah}</span>
+                                </td>
+                                <td class="p-3 md:p-4 text-center">
+                                    <div class="flex justify-center gap-2">
+                                        <button onclick="bukaKamera('${user.username}', '${user.nama}')" class="bg-amber-100 hover:bg-amber-200 text-amber-700 px-3 py-1.5 rounded-lg font-bold text-xs transition-colors shadow-sm" title="Rekam Wajah">
+                                            <i class="fa-solid fa-camera md:mr-1"></i> <span class="hidden md:inline">Rekam</span>
+                                        </button>
+                                        <button onclick="hapusPegawai('${user.username}')" class="bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-600 px-3 py-1.5 rounded-lg font-bold text-xs transition-colors shadow-sm" title="Hapus Data">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>`;
+                    }
+                });
+                document.querySelector('#tabelPegawai tbody').innerHTML = html || '<tr><td colspan="4" class="p-8 text-center text-slate-400">Belum ada data pegawai.</td></tr>';
+            })
+            .catch(() => alert("Gagal memuat data dari server!"));
+        }
+
+        function tambahPegawai() {
+            const usrRaw = document.getElementById('usrBaru').value;
+            const nama = document.getElementById('namaBaru').value.trim();
+            const pass = document.getElementById('passBaru').value;
+            
+            if (/\s/.test(usrRaw)) return alert("Username tidak boleh ada spasi!");
+            const usr = usrRaw.trim();
+            
+            if(!usr || !nama || !pass) return alert("Semua kolom wajib diisi!");
+            
+            fetch(URL_GAS, { method: 'POST', body: JSON.stringify({ action: 'add_user', username: usr, nama: nama, password: pass }) })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === "success") {
+                    muatPegawai();
+                    document.getElementById('usrBaru').value = ''; 
+                    document.getElementById('namaBaru').value = ''; 
+                    document.getElementById('passBaru').value = '';
+                } else {
+                    alert("Gagal: " + data.message);
+                }
+            });
+        }
+
+        function hapusPegawai(username) {
+            if(confirm("PERINGATAN: Yakin ingin menghapus pegawai @" + username + "?")) {
+                fetch(URL_GAS, { method: 'POST', body: JSON.stringify({ action: 'delete_user', username: username }) }).then(() => muatPegawai());
+            }
+        }
+
+        // --- CRUD POS JAGA ---
+        function muatPos() {
+            fetch(URL_GAS + '?action=get_locations')
+            .then(res => res.json())
+            .then(data => {
+                let html = '';
+                data.forEach(loc => {
+                    html += `
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="p-3 md:p-4 font-bold text-indigo-700"><i class="fa-solid fa-map-pin mr-2 text-indigo-400"></i>${loc.nama_lokasi}</td>
+                            <td class="p-3 md:p-4 font-mono text-slate-500 text-xs">${loc.latitude}, <br class="md:hidden">${loc.longitude}</td>
+                            <td class="p-3 md:p-4 text-center"><span class="bg-slate-100 px-3 py-1 rounded-lg text-xs font-bold text-slate-600">${loc.radius} Meter</span></td>
+                            <td class="p-3 md:p-4 text-center">
+                                <button onclick="hapusPos('${loc.id}')" class="bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-600 px-3 py-1.5 rounded-lg font-bold text-xs transition-colors shadow-sm">
+                                    <i class="fa-solid fa-trash"></i> <span class="hidden md:inline">Hapus</span>
+                                </button>
+                            </td>
+                        </tr>`;
+                });
+                document.querySelector('#tabelPos tbody').innerHTML = html || '<tr><td colspan="4" class="p-8 text-center text-slate-400">Belum ada titik pos jaga.</td></tr>';
+            });
+        }
+
+        function tambahPos() {
+            const nama = document.getElementById('namaPos').value.trim();
+            const lat = document.getElementById('lat').value.trim();
+            const lng = document.getElementById('lng').value.trim();
+            const rad = document.getElementById('rad').value.trim();
+            
+            if(!nama || !lat || !lng || !rad) return alert("Semua kolom data lokasi wajib diisi!");
+            
+            fetch(URL_GAS, { method: 'POST', body: JSON.stringify({ action: 'add_location', nama_lokasi: nama, latitude: lat, longitude: lng, radius: rad }) })
+            .then(() => { 
+                muatPos(); 
+                document.getElementById('namaPos').value = ''; 
+                document.getElementById('lat').value = ''; 
+                document.getElementById('lng').value = ''; 
+            });
+        }
+
+        function hapusPos(id) {
+            if(confirm("Yakin ingin menghapus pos jaga ini?")) {
+                fetch(URL_GAS, { method: 'POST', body: JSON.stringify({ action: 'delete_location', id: id }) }).then(() => muatPos());
+            }
+        }
+
+        // --- KAMERA ADMIN ---
+        let targetUsr = '';
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        let aiDimuat = false;
+        let deteksiInterval;
+
+        function bukaKamera(usr, nama) {
+            document.getElementById('utamaAdmin').classList.remove('block');
+            document.getElementById('utamaAdmin').classList.add('hidden');
+            
+            document.getElementById('areaKamera').classList.remove('hidden');
+            document.getElementById('areaKamera').classList.add('block');
+            
+            document.getElementById('namaTarget').innerText = nama;
+            targetUsr = usr;
+
+            const status = document.getElementById('statusAI');
+
+            if(!aiDimuat) {
+                Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                ]).then(() => {
+                    aiDimuat = true; 
+                    mulaiStream();
+                }).catch(() => {
+                    status.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-2"></i> Gagal memuat AI.';
+                    status.className = "text-center text-sm font-bold text-red-600 bg-red-50 py-2.5 rounded-xl border border-red-200 mb-4 px-2";
+                });
+            } else { 
+                mulaiStream(); 
+            }
+        }
+
+        function mulaiStream() {
+            const status = document.getElementById('statusAI');
+            status.innerHTML = '<i class="fa-solid fa-camera mr-2"></i> Kamera Aktif. Arahkan Wajah Target.';
+            status.className = "text-center text-sm font-bold text-blue-600 bg-blue-50 py-2.5 rounded-xl border border-blue-200 mb-4 px-2";
+            
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }).then(stream => { video.srcObject = stream; });
+        }
+
+        video.addEventListener('playing', () => {
+            const displaySize = { width: video.videoWidth, height: video.videoHeight };
+            faceapi.matchDimensions(canvas, displaySize);
+            
+            deteksiInterval = setInterval(async () => {
+                if(document.getElementById('areaKamera').classList.contains('hidden')) return;
+                
+                const deteksi = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+                
+                if (deteksi) {
+                    document.getElementById('btnAmbilDNA').style.display = "flex";
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    faceapi.draw.drawFaceLandmarks(canvas, faceapi.resizeResults(deteksi, displaySize));
+                } else {
+                    document.getElementById('btnAmbilDNA').style.display = "none";
+                    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }, 300);
+        });
+
+        async function simpanDNA() {
+            const status = document.getElementById('statusAI');
+            status.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengekstrak DNA...';
+            status.className = "text-center text-sm font-bold text-indigo-600 bg-indigo-50 py-2.5 rounded-xl border border-indigo-200 mb-4 px-2";
+            
+            document.getElementById('btnAmbilDNA').style.display = "none";
+
+            const deteksi = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+            if (deteksi) {
+                const descriptorArray = Array.from(deteksi.descriptor);
+                
+                fetch(URL_GAS, { 
+                    method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'simpan_wajah', username: targetUsr, descriptor: JSON.stringify(descriptorArray) }) 
+                }).then(() => { 
+                    alert("✅ DNA Wajah Berhasil Disimpan!"); 
+                    tutupKamera(); 
+                    muatPegawai(); 
+                });
+            } else {
+                alert("Wajah tidak terdeteksi jelas!"); 
+                document.getElementById('btnAmbilDNA').style.display = "flex";
+                status.innerHTML = '<i class="fa-solid fa-camera mr-2"></i> Kamera Aktif. Arahkan Wajah.';
+            }
+        }
+
+        function tutupKamera() {
+            clearInterval(deteksiInterval);
+            document.getElementById('areaKamera').classList.remove('block');
+            document.getElementById('areaKamera').classList.add('hidden');
+            
+            document.getElementById('utamaAdmin').classList.remove('hidden');
+            document.getElementById('utamaAdmin').classList.add('block');
+            
+            if(video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+        }
+
+        window.onload = () => { 
+            muatPegawai(); 
+            muatPos(); 
+        };
+    </script>
+</body>
+</html>

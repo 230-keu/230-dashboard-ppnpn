@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifikasi Wajah - Liveness</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://arngoding.github.io/aset-presensi-230/face-api.min.js"></script>
+
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        
+        /* Efek AI Scanning */
+        .scan-line {
+            height: 2px;
+            background: linear-gradient(to right, transparent, #3b82f6, transparent);
+            position: absolute;
+            width: 100%;
+            top: 0;
+            z-index: 10;
+            animation: scan 3s linear infinite;
+            display: none;
+        }
+        @keyframes scan {
+            0% { top: 0%; }
+            100% { top: 100%; }
+        }
+        
+        /* Animasi Instruksi */
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 bg-[url('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center bg-fixed relative">
+    
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-0"></div>
+
+    <div class="glass-panel w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden relative z-10 border border-white/20">
+        
+        <div class="p-6 pb-2 text-center">
+            <h2 class="text-xl font-bold text-slate-800 tracking-tight">Verifikasi Identitas</h2>
+            <p class="text-slate-500 text-xs mt-1">Pindai wajah untuk mencatat kehadiran</p>
+        </div>
+
+        <div class="p-6 pt-0">
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <div class="bg-blue-50/80 p-3 rounded-2xl border border-blue-100 shadow-sm flex flex-col">
+                    <span class="text-[10px] uppercase font-bold text-blue-400 mb-1 leading-none"><i class="fa-solid fa-location-dot"></i> Lokasi Pos</span>
+                    <span id="tampilPos" class="text-xs font-bold text-blue-800 truncate">Memuat...</span>
+                </div>
+                <div class="bg-indigo-50/80 p-3 rounded-2xl border border-indigo-100 shadow-sm flex flex-col text-right">
+                    <span class="text-[10px] uppercase font-bold text-indigo-400 mb-1 leading-none">Waktu Server <i class="fa-solid fa-clock"></i></span>
+                    <span id="tampilJam" class="text-xs font-bold text-indigo-800 font-mono">--:--:-- WIB</span>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <div class="flex justify-between items-center mb-1.5 px-1">
+                    <span id="labelTipe" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Analisis Liveness</span>
+                    <span id="persenProgress" class="text-[10px] font-bold text-blue-600">0%</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2 shadow-inner p-0.5">
+                    <div id="progressBar" class="bg-gradient-to-r from-blue-500 to-indigo-600 h-1 rounded-full transition-all duration-500 shadow-sm" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div id="teksInstruksi" class="text-center text-sm font-bold text-amber-500 bg-amber-50 py-2.5 rounded-xl border border-amber-100 mb-6 fade-in">
+                <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Menghubungkan ke AI...
+            </div>
+
+            <div id="video-container" class="relative rounded-[2rem] overflow-hidden bg-black aspect-[3/4] border-4 border-white shadow-2xl group">
+                <div id="lineScan" class="scan-line"></div>
+                
+                <div class="absolute top-6 left-6 w-8 h-8 border-t-4 border-l-4 border-blue-500 rounded-tl-lg z-20 opacity-60"></div>
+                <div class="absolute top-6 right-6 w-8 h-8 border-t-4 border-r-4 border-blue-500 rounded-tr-lg z-20 opacity-60"></div>
+                <div class="absolute bottom-6 left-6 w-8 h-8 border-b-4 border-l-4 border-blue-500 rounded-bl-lg z-20 opacity-60"></div>
+                <div class="absolute bottom-6 right-6 w-8 h-8 border-b-4 border-r-4 border-blue-500 rounded-br-lg z-20 opacity-60"></div>
+
+                <video id="video" class="w-full h-full object-cover scale-x-[-1]" autoplay muted playsinline></video>
+                <canvas id="canvas" class="absolute top-0 left-0 w-full h-full z-10 scale-x-[-1]"></canvas>
+                
+                <div id="overlaySukses" class="absolute inset-0 bg-green-500/20 hidden flex items-center justify-center z-30 backdrop-blur-[2px]">
+                    <div class="bg-white p-4 rounded-full shadow-2xl animate-bounce">
+                        <i class="fa-solid fa-check text-4xl text-green-500"></i>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btnSelesai" onclick="kembaliKeDashboard()" class="hidden w-full mt-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 rounded-2xl shadow-xl transform transition-all active:scale-95 items-center justify-center gap-2">
+                <i class="fa-solid fa-circle-check"></i> Selesai & Kembali
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- KONFIGURASI URL ---
+        const MODEL_URL = 'https://arngoding.github.io/aset-presensi-230/weights'; 
+        const URL_GAS = "/api/proxy";
+        const URL_DASHBOARD = "dashboard.html";
+
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const teks = document.getElementById('teksInstruksi');
+        const prog = document.getElementById('progressBar');
+        const pPersen = document.getElementById('persenProgress');
+        const btnSelesai = document.getElementById('btnSelesai');
+        
+        let tahap = 0;
+        let matcher = null;
+
+        window.onload = () => {
+            // Tampilkan Lokasi & Jam
+            document.getElementById('tampilPos').innerText = localStorage.getItem('lokasi_pos_kirim') || "Area Luar Pos";
+            setInterval(() => {
+                const n = new Date();
+                document.getElementById('tampilJam').innerText = `${String(n.getHours()).padStart(2,'0')}.${String(n.getMinutes()).padStart(2,'0')}.${String(n.getSeconds()).padStart(2,'0')} WIB`;
+            }, 1000);
+
+            // Muat DNA
+            fetch(URL_GAS + "?action=get_descriptor&username=" + localStorage.getItem('username'))
+            .then(r => r.json()).then(d => {
+                if(d.status === "success" && d.descriptor) {
+                    matcher = new faceapi.FaceMatcher([new faceapi.LabeledFaceDescriptors(localStorage.getItem('username'), [new Float32Array(JSON.parse(d.descriptor))])], 0.5); 
+                    teks.innerHTML = '<i class="fa-solid fa-microchip fa-spin mr-2"></i> Menginisialisasi Sensor...';
+                    Promise.all([
+                        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                        faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL),
+                        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                    ]).then(mulaiKamera);
+                } else { alert("Wajah belum terdaftar!"); kembaliKeDashboard(); }
+            });
+        };
+
+        function mulaiKamera() {
+            navigator.mediaDevices.getUserMedia({video:{facingMode:"user"}}).then(s => {
+                video.srcObject = s;
+                teks.innerHTML = '<i class="fa-solid fa-camera mr-2"></i> Kamera Aktif. Posisikan Wajah.';
+                teks.className = "text-center text-sm font-bold text-blue-600 bg-blue-50 py-2.5 rounded-xl border border-blue-100 mb-6 fade-in";
+                document.getElementById('lineScan').style.display = "block";
+            });
+        }
+
+        function hitungJarak(t1, t2) { return Math.sqrt(Math.pow((t1.x - t2.x), 2) + Math.pow((t1.y - t2.y), 2)); }
+        function hitungEAR(m) { return (hitungJarak(m[1], m[5]) + hitungJarak(m[2], m[4])) / (2.0 * hitungJarak(m[0], m[3])); }
+
+        video.addEventListener('playing', () => {
+            const dim = { width: video.videoWidth, height: video.videoHeight };
+            faceapi.matchDimensions(canvas, dim);
+            tahap = 1;
+            teks.innerHTML = '<i class="fa-solid fa-eye mr-2"></i> Verifikasi Liveness: <b>Silakan Berkedip</b>';
+            prog.style.width = "20%"; pPersen.innerText = "20%";
+
+            const int = setInterval(async () => {
+                if (tahap === 3) { clearInterval(int); return; }
+                const det = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceExpressions().withFaceDescriptor();
+                
+                if (det) {
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    // Gambar landmark tipis untuk kesan AI
+                    faceapi.draw.drawFaceLandmarks(canvas, faceapi.resizeResults(det, dim));
+
+                    if (tahap === 1) {
+                        const rata = (hitungEAR(det.landmarks.getLeftEye()) + hitungEAR(det.landmarks.getRightEye())) / 2;
+                        if (rata < 0.28) { 
+                            tahap = 2; prog.style.width = "60%"; pPersen.innerText = "60%";
+                            teks.innerHTML = '<i class="fa-solid fa-face-smile mr-2"></i> Bagus! Sekarang <b>Tersenyumlah</b>';
+                            teks.className = "text-center text-sm font-bold text-indigo-600 bg-indigo-50 py-2.5 rounded-xl border border-indigo-100 mb-6 fade-in";
+                        }
+                    } else if (tahap === 2 && det.expressions.happy > 0.8) {
+                        if (matcher.findBestMatch(det.descriptor).label === localStorage.getItem('username')) {
+                            tahap = 3; prog.style.width = "100%"; pPersen.innerText = "100%";
+                            teks.innerHTML = '<i class="fa-solid fa-cloud-upload fa-bounce mr-2"></i> Identitas Cocok! Menyimpan...';
+                            teks.className = "text-center text-sm font-bold text-green-600 bg-green-50 py-2.5 rounded-xl border border-green-100 mb-6 fade-in";
+                            document.getElementById('overlaySukses').classList.remove('hidden');
+                            document.getElementById('lineScan').style.display = "none";
+                            
+                            const tc = document.createElement('canvas'); tc.width = dim.width; tc.height = dim.height;
+                            tc.getContext('2d').drawImage(video, 0, 0);
+                            
+                            fetch(URL_GAS, { 
+                                method: 'POST', 
+                                body: JSON.stringify({ 
+                                    action: 'presensi', 
+                                    foto: tc.toDataURL('image/jpeg', 0.8), 
+                                    jenis: localStorage.getItem('jenis_absen_kirim'), 
+                                    username: localStorage.getItem('username'), 
+                                    nama: localStorage.getItem('user_nama'), 
+                                    lokasi: localStorage.getItem('lokasi_pos_kirim') 
+                                }) 
+                            }).then(r => r.json()).then(res => {
+                                if(res.status === "success") {
+                                    teks.innerHTML = '<i class="fa-solid fa-check-double mr-2"></i> Presensi Berhasil Dicatat!';
+                                    btnSelesai.classList.remove('hidden');
+                                    btnSelesai.classList.add('flex');
+                                }
+                            });
+                        } else {
+                            teks.innerHTML = '<i class="fa-solid fa-user-slash mr-2"></i> Wajah Tidak Dikenali!';
+                            teks.className = "text-center text-sm font-bold text-red-600 bg-red-50 py-2.5 rounded-xl border border-red-100 mb-6";
+                            tahap = 1; prog.style.width = "20%"; pPersen.innerText = "20%";
+                            setTimeout(() => { teks.innerHTML = '<i class="fa-solid fa-eye mr-2"></i> Silakan Berkedip Ulang'; }, 2000);
+                        }
+                    }
+                }
+            }, 100);
+        });
+
+        function kembaliKeDashboard() { window.location.href = URL_DASHBOARD; }
+    </script>
+</body>
+</html>
