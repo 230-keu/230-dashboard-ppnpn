@@ -31,6 +31,11 @@
     
     <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm z-0"></div>
 
+    <div id="loadingOverlay" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center">
+        <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <p class="mt-4 text-white font-medium text-sm">Memproses data ke server...</p>
+    </div>
+
     <div id="utamaAdmin" class="glass-panel w-full max-w-5xl rounded-[1.5rem] md:rounded-[2rem] shadow-2xl overflow-hidden relative z-10 border border-white/20 p-4 md:p-10 fade-in block">
         
         <div class="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8 gap-4 border-b border-slate-200 pb-4 md:pb-6 text-center md:text-left">
@@ -147,12 +152,10 @@
     </div>
 
     <script>
-        // MASUKKAN KETIGA URL MILIK ANDA DI SINI
         const URL_GAS = "/api/proxy";
         const MODEL_URL = 'https://arngoding.github.io/aset-presensi-230/weights'; 
         const URL_LOGIN = "index.html";
 
-        // --- SISTEM PENGAMAN HALAMAN (BOUNCER) ---
         if(localStorage.getItem('username') !== 'admin') {
             window.location.href = URL_LOGIN;
         }
@@ -162,7 +165,6 @@
             window.location.href = URL_LOGIN;
         }
 
-        // --- TAB NAVIGATION ---
         function bukaTab(idTab, elemen) {
             document.querySelectorAll('.tab-content').forEach(el => {
                 el.classList.remove('block');
@@ -175,7 +177,6 @@
             elemen.classList.add('active');
         }
 
-        // --- CRUD PEGAWAI ---
         function muatPegawai() {
             fetch(URL_GAS + '?action=get_users')
             .then(res => res.json())
@@ -241,7 +242,6 @@
             }
         }
 
-        // --- CRUD POS JAGA ---
         function muatPos() {
             fetch(URL_GAS + '?action=get_locations')
             .then(res => res.json())
@@ -269,11 +269,8 @@
             });
         }
 
-        // --- FUNGSI UPDATE/EDIT RADIUS POS ---
         function editRadius(id, currentRadius, namaPos) {
             const newRadius = prompt(`Masukkan Radius Baru untuk ${namaPos} (Meter):`, currentRadius);
-            
-            // Jika user menekan tombol cancel/batal
             if (newRadius === null) return; 
 
             const radiusAngka = parseInt(newRadius.trim());
@@ -282,7 +279,9 @@
                 return;
             }
 
-            // Kirim request pembaruan ke API Proxy Vercel
+            // Tampilkan Loading Overlay
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+
             fetch(URL_GAS, {
                 method: 'POST',
                 body: JSON.stringify({
@@ -293,14 +292,20 @@
             })
             .then(res => res.json())
             .then(data => {
+                // Sembunyikan Loading Overlay
+                document.getElementById('loadingOverlay').classList.add('hidden');
+                
                 if (data.status === "success") {
                     alert(`✅ Sukses memperbarui radius ${namaPos} menjadi ${radiusAngka} Meter.`);
-                    muatPos(); // Perbarui tampilan tabel lokasi secara otomatis
+                    muatPos(); 
                 } else {
                     alert("❌ Gagal memperbarui data: " + data.message);
                 }
             })
-            .catch(() => alert("❌ Gagal terhubung ke server database."));
+            .catch(() => {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+                alert("❌ Gagal terhubung ke server database.");
+            });
         }
 
         function tambahPos() {
@@ -320,13 +325,14 @@
             });
         }
 
+        function htmlEscape(str) { return str; }
+
         function hapusPos(id) {
             if(confirm("Yakin ingin menghapus pos jaga ini?")) {
                 fetch(URL_GAS, { method: 'POST', body: JSON.stringify({ action: 'delete_location', id: id }) }).then(() => muatPos());
             }
         }
 
-        // --- KAMERA ADMIN ---
         let targetUsr = '';
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
@@ -336,15 +342,12 @@
         function bukaKamera(usr, nama) {
             document.getElementById('utamaAdmin').classList.remove('block');
             document.getElementById('utamaAdmin').classList.add('hidden');
-            
             document.getElementById('areaKamera').classList.remove('hidden');
             document.getElementById('areaKamera').classList.add('block');
-            
             document.getElementById('namaTarget').innerText = nama;
             targetUsr = usr;
 
             const status = document.getElementById('statusAI');
-
             if(!aiDimuat) {
                 Promise.all([
                     faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
@@ -366,19 +369,15 @@
             const status = document.getElementById('statusAI');
             status.innerHTML = '<i class="fa-solid fa-camera mr-2"></i> Kamera Aktif. Arahkan Wajah Target.';
             status.className = "text-center text-sm font-bold text-blue-600 bg-blue-50 py-2.5 rounded-xl border border-blue-200 mb-4 px-2";
-            
             navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }).then(stream => { video.srcObject = stream; });
         }
 
         video.addEventListener('playing', () => {
             const displaySize = { width: video.videoWidth, height: video.videoHeight };
             faceapi.matchDimensions(canvas, displaySize);
-            
             deteksiInterval = setInterval(async () => {
                 if(document.getElementById('areaKamera').classList.contains('hidden')) return;
-                
                 const deteksi = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
-                
                 if (deteksi) {
                     document.getElementById('btnAmbilDNA').style.display = "flex";
                     const ctx = canvas.getContext('2d');
@@ -395,13 +394,11 @@
             const status = document.getElementById('statusAI');
             status.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengekstrak DNA...';
             status.className = "text-center text-sm font-bold text-indigo-600 bg-indigo-50 py-2.5 rounded-xl border border-indigo-200 mb-4 px-2";
-            
             document.getElementById('btnAmbilDNA').style.display = "none";
 
             const deteksi = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
             if (deteksi) {
                 const descriptorArray = Array.from(deteksi.descriptor);
-                
                 fetch(URL_GAS, { 
                     method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ action: 'simpan_wajah', username: targetUsr, descriptor: JSON.stringify(descriptorArray) }) 
@@ -421,17 +418,12 @@
             clearInterval(deteksiInterval);
             document.getElementById('areaKamera').classList.remove('block');
             document.getElementById('areaKamera').classList.add('hidden');
-            
             document.getElementById('utamaAdmin').classList.remove('hidden');
             document.getElementById('utamaAdmin').classList.add('block');
-            
             if(video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
         }
 
-        window.onload = () => { 
-            muatPegawai(); 
-            muatPos(); 
-        };
+        window.onload = () => { muatPegawai(); muatPos(); };
     </script>
 </body>
 </html>

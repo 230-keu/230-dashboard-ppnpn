@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Verifikasi Wajah - Liveness</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -14,7 +14,6 @@
         body { font-family: 'Poppins', sans-serif; }
         .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
         
-        /* Efek AI Scanning */
         .scan-line {
             height: 2px;
             background: linear-gradient(to right, transparent, #3b82f6, transparent);
@@ -25,29 +24,27 @@
             animation: scan 3s linear infinite;
             display: none;
         }
-        @keyframes scan {
-            0% { top: 0%; }
-            100% { top: 100%; }
-        }
-        
-        /* Animasi Instruksi */
+        @keyframes scan { 0% { top: 0%; } 100% { top: 100%; } }
         .fade-in { animation: fadeIn 0.5s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4 bg-[url('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center bg-fixed relative">
+<body class="min-h-screen flex items-center justify-center p-2 md:p-6 bg-[url('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center bg-fixed relative">
     
     <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-0"></div>
 
-    <div class="glass-panel w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden relative z-10 border border-white/20">
+    <div class="glass-panel w-full max-w-md md:max-w-lg rounded-[2rem] md:rounded-[2.5rem] shadow-2xl overflow-hidden relative z-10 border border-white/20 p-4 md:p-8">
         
-        <div class="p-6 pb-2 text-center">
-            <h2 class="text-xl font-bold text-slate-800 tracking-tight">Verifikasi Identitas</h2>
+        <div class="pb-2 text-center relative">
+            <a href="dashboard.html" class="absolute left-1 top-1 text-slate-400 hover:text-blue-600 transition-colors w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shadow-sm">
+                <i class="fa-solid fa-arrow-left"></i>
+            </a>
+            <h2 class="text-xl md:text-2xl font-bold text-slate-800 tracking-tight">Verifikasi Identitas</h2>
             <p class="text-slate-500 text-xs mt-1">Pindai wajah untuk mencatat kehadiran</p>
         </div>
 
-        <div class="p-6 pt-0">
-            <div class="grid grid-cols-2 gap-3 mb-6">
+        <div class="pt-4">
+            <div class="grid grid-cols-2 gap-3 mb-4">
                 <div class="bg-blue-50/80 p-3 rounded-2xl border border-blue-100 shadow-sm flex flex-col">
                     <span class="text-[10px] uppercase font-bold text-blue-400 mb-1 leading-none"><i class="fa-solid fa-location-dot"></i> Lokasi Pos</span>
                     <span id="tampilPos" class="text-xs font-bold text-blue-800 truncate">Memuat...</span>
@@ -68,17 +65,17 @@
                 </div>
             </div>
 
-            <div id="teksInstruksi" class="text-center text-sm font-bold text-amber-500 bg-amber-50 py-2.5 rounded-xl border border-amber-100 mb-6 fade-in">
+            <div id="teksInstruksi" class="text-center text-sm font-bold text-amber-500 bg-amber-50 py-2.5 rounded-xl border border-amber-100 mb-4 fade-in">
                 <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Menghubungkan ke AI...
             </div>
 
-            <div id="video-container" class="relative rounded-[2rem] overflow-hidden bg-black aspect-[3/4] border-4 border-white shadow-2xl group">
+            <div id="video-container" class="relative rounded-2xl md:rounded-[2rem] overflow-hidden bg-black max-h-[45vh] md:max-h-[50vh] aspect-[3/4] mx-auto border-4 border-white shadow-2xl group">
                 <div id="lineScan" class="scan-line"></div>
                 
-                <div class="absolute top-6 left-6 w-8 h-8 border-t-4 border-l-4 border-blue-500 rounded-tl-lg z-20 opacity-60"></div>
-                <div class="absolute top-6 right-6 w-8 h-8 border-t-4 border-r-4 border-blue-500 rounded-tr-lg z-20 opacity-60"></div>
-                <div class="absolute bottom-6 left-6 w-8 h-8 border-b-4 border-l-4 border-blue-500 rounded-bl-lg z-20 opacity-60"></div>
-                <div class="absolute bottom-6 right-6 w-8 h-8 border-b-4 border-r-4 border-blue-500 rounded-br-lg z-20 opacity-60"></div>
+                <div class="absolute top-4 left-4 w-6 h-6 border-t-4 border-l-4 border-blue-500 rounded-tl z-20 opacity-60"></div>
+                <div class="absolute top-4 right-4 w-6 h-6 border-t-4 border-r-4 border-blue-500 rounded-tr z-20 opacity-60"></div>
+                <div class="absolute bottom-4 left-4 w-6 h-6 border-b-4 border-l-4 border-blue-500 rounded-bl z-20 opacity-60"></div>
+                <div class="absolute bottom-4 right-4 w-6 h-6 border-b-4 border-r-4 border-blue-500 rounded-br z-20 opacity-60"></div>
 
                 <video id="video" class="w-full h-full object-cover scale-x-[-1]" autoplay muted playsinline></video>
                 <canvas id="canvas" class="absolute top-0 left-0 w-full h-full z-10 scale-x-[-1]"></canvas>
@@ -90,14 +87,13 @@
                 </div>
             </div>
 
-            <button id="btnSelesai" onclick="kembaliKeDashboard()" class="hidden w-full mt-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 rounded-2xl shadow-xl transform transition-all active:scale-95 items-center justify-center gap-2">
+            <button id="btnSelesai" onclick="kembaliKeDashboard()" class="hidden w-full mt-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-3.5 rounded-2xl shadow-xl transform transition-all active:scale-95 items-center justify-center gap-2">
                 <i class="fa-solid fa-circle-check"></i> Selesai & Kembali
             </button>
         </div>
     </div>
 
     <script>
-        // --- KONFIGURASI URL ---
         const MODEL_URL = 'https://arngoding.github.io/aset-presensi-230/weights'; 
         const URL_GAS = "/api/proxy";
         const URL_DASHBOARD = "dashboard.html";
@@ -112,23 +108,17 @@
         
         let tahap = 0;
         let matcher = null;
- 
-        const userUsername = localStorage.getItem('username');
-        
-        // Pengecekan Keamanan (Bouncer)
-        if (!userUsername) {
-            window.location.href = URL_LOGIN;
-        }
+
+        const userUsername = localStorage.getItem('username'); 
+        if (!userUsername) { window.location.href = URL_LOGIN; }
 
         window.onload = () => {
-            // Tampilkan Lokasi & Jam
             document.getElementById('tampilPos').innerText = localStorage.getItem('lokasi_pos_kirim') || "Area Luar Pos";
             setInterval(() => {
                 const n = new Date();
                 document.getElementById('tampilJam').innerText = `${String(n.getHours()).padStart(2,'0')}.${String(n.getMinutes()).padStart(2,'0')}.${String(n.getSeconds()).padStart(2,'0')} WIB`;
             }, 1000);
 
-            // Muat DNA
             fetch(URL_GAS + "?action=get_descriptor&username=" + localStorage.getItem('username'))
             .then(r => r.json()).then(d => {
                 if(d.status === "success" && d.descriptor) {
@@ -148,7 +138,7 @@
             navigator.mediaDevices.getUserMedia({video:{facingMode:"user"}}).then(s => {
                 video.srcObject = s;
                 teks.innerHTML = '<i class="fa-solid fa-camera mr-2"></i> Kamera Aktif. Posisikan Wajah.';
-                teks.className = "text-center text-sm font-bold text-blue-600 bg-blue-50 py-2.5 rounded-xl border border-blue-100 mb-6 fade-in";
+                teks.className = "text-center text-sm font-bold text-blue-600 bg-blue-50 py-2.5 rounded-xl border border-blue-100 mb-4 fade-in";
                 document.getElementById('lineScan').style.display = "block";
             });
         }
@@ -170,7 +160,6 @@
                 if (det) {
                     const ctx = canvas.getContext('2d');
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    // Gambar landmark tipis untuk kesan AI
                     faceapi.draw.drawFaceLandmarks(canvas, faceapi.resizeResults(det, dim));
 
                     if (tahap === 1) {
@@ -178,15 +167,26 @@
                         if (rata < 0.28) { 
                             tahap = 2; prog.style.width = "60%"; pPersen.innerText = "60%";
                             teks.innerHTML = '<i class="fa-solid fa-face-smile mr-2"></i> Bagus! Sekarang <b>Tersenyumlah</b>';
-                            teks.className = "text-center text-sm font-bold text-indigo-600 bg-indigo-50 py-2.5 rounded-xl border border-indigo-100 mb-6 fade-in";
+                            teks.className = "text-center text-sm font-bold text-indigo-600 bg-indigo-50 py-2.5 rounded-xl border border-indigo-100 mb-4 fade-in";
                         }
                     } else if (tahap === 2 && det.expressions.happy > 0.8) {
                         if (matcher.findBestMatch(det.descriptor).label === localStorage.getItem('username')) {
                             tahap = 3; prog.style.width = "100%"; pPersen.innerText = "100%";
-                            teks.innerHTML = '<i class="fa-solid fa-cloud-upload fa-bounce mr-2"></i> Identitas Cocok! Menyimpan...';
-                            teks.className = "text-center text-sm font-bold text-green-600 bg-green-50 py-2.5 rounded-xl border border-green-100 mb-6 fade-in";
+                            
+                            // MATIKAN STREAM VIDEO (Kamera Berhenti Merekam)
+                            if (video.srcObject) {
+                                video.srcObject.getTracks().forEach(track => track.stop());
+                            }
+                            
+                            // Mengunci Waktu Capture Saat Ini
+                            const waktuSkrg = new Date();
+                            const jamCapture = `${String(waktuSkrg.getHours()).padStart(2,'0')}.${String(waktuSkrg.getMinutes()).padStart(2,'0')}`;
+                            
+                            teks.innerHTML = `<i class="fa-solid fa-circle-check mr-2"></i> Terverifikasi Jam ${jamCapture} WIB! Menyimpan...`;
+                            teks.className = "text-center text-sm font-bold text-green-600 bg-green-50 py-2.5 rounded-xl border border-green-100 mb-4 fade-in";
                             document.getElementById('overlaySukses').classList.remove('hidden');
                             document.getElementById('lineScan').style.display = "none";
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
                             
                             const tc = document.createElement('canvas'); tc.width = dim.width; tc.height = dim.height;
                             tc.getContext('2d').drawImage(video, 0, 0);
@@ -203,14 +203,14 @@
                                 }) 
                             }).then(r => r.json()).then(res => {
                                 if(res.status === "success") {
-                                    teks.innerHTML = '<i class="fa-solid fa-check-double mr-2"></i> Presensi Berhasil Dicatat!';
+                                    teks.innerHTML = `<i class="fa-solid fa-check-double mr-2"></i> Presensi Berhasil Dicatat Jam ${jamCapture} WIB!`;
                                     btnSelesai.classList.remove('hidden');
                                     btnSelesai.classList.add('flex');
                                 }
                             });
                         } else {
                             teks.innerHTML = '<i class="fa-solid fa-user-slash mr-2"></i> Wajah Tidak Dikenali!';
-                            teks.className = "text-center text-sm font-bold text-red-600 bg-red-50 py-2.5 rounded-xl border border-red-100 mb-6";
+                            teks.className = "text-center text-sm font-bold text-red-600 bg-red-50 py-2.5 rounded-xl border border-red-100 mb-4";
                             tahap = 1; prog.style.width = "20%"; pPersen.innerText = "20%";
                             setTimeout(() => { teks.innerHTML = '<i class="fa-solid fa-eye mr-2"></i> Silakan Berkedip Ulang'; }, 2000);
                         }
