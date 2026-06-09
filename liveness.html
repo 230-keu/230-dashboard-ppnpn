@@ -112,6 +112,11 @@
         let tahap = 0;
         let matcher = null;
 
+        // Pengecekan Keamanan (Bouncer)
+        if (!userUsername) {
+            window.location.href = URL_LOGIN;
+        }
+
         window.onload = () => {
             // Tampilkan Lokasi & Jam
             document.getElementById('tampilPos').innerText = localStorage.getItem('lokasi_pos_kirim') || "Area Luar Pos";
