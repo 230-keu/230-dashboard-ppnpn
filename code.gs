@@ -54,34 +54,57 @@ function doGet(e) {
       if (rows[i][1].toString() === uname) {
         var masukTxt = rows[i][3] ? rows[i][3].toString() : "";
         var pulangTxt = rows[i][4] ? rows[i][4].toString() : "";
-        var tsM = parseFloat(rows[i][9]);  // TS Masuk
-        var tsK = parseFloat(rows[i][10]); // TS Keluar
         
         var statusAbsen = "Hadir";
         var isTL = false;
         var isPSW = false;
+        var isShiftPagi = false;
+        var isShiftMalam = false;
         
         if (masukTxt !== "") {
           var jamM = parseInt(masukTxt.split(".")[0]);
           var mntM = parseInt(masukTxt.split(".")[1]);
           
-          // Deteksi Terlambat (Batas 08:15 Pagi & 20:15 Malam)
-          if ((jamM === 8 && mntM > 15) || (jamM > 8 && jamM < 16)) isTL = true;
-          if ((jamM === 20 && mntM > 15) || (jamM > 20 || jamM < 4)) isTL = true;
+          // DETEKSI TERLAMBAT TANPA TOLERANSI
+          if (jamM >= 4 && jamM < 15) {
+            isShiftPagi = true; // Catat bahwa ini Shift Pagi
+            if ((jamM === 7 && mntM > 0) || jamM > 7) {
+              isTL = true;
+            }
+          }
+          else if (jamM >= 15 || jamM < 4) {
+            isShiftMalam = true; // Catat bahwa ini Shift Malam
+            if ((jamM === 19 && mntM > 0) || jamM > 19 || jamM < 4) {
+              isTL = true;
+            }
+          }
           
-          // Deteksi PSW
+          // DETEKSI PSW (ATURAN KETAT JAM KELUAR MUTLAK)
           if (pulangTxt === "") {
             isPSW = true;
             statusAbsen = "PSW (Lupa Absen)";
-          } else if (!isNaN(tsM) && !isNaN(tsK)) {
-            var durasiShift = (tsK - tsM) / (1000 * 60 * 60);
-            // Anggap shift normal 12 jam, minimal kerja 11.5 jam
-            if (durasiShift < 11.5) { 
-              isPSW = true;
+          } else {
+            // Ambil jam keluar dari teks agar tetap akurat meski diubah manual oleh Admin
+            var jamK = parseInt(pulangTxt.split(".")[0]);
+            
+            if (isShiftPagi) {
+              // Syarat Shift Pagi: Harus pulang jam 19.00 ke atas.
+              // Jika jam keluar masih antara 04.00 s.d 18.59, maka dicap PSW.
+              if (jamK >= 4 && jamK < 19) {
+                isPSW = true;
+              }
+            } 
+            else if (isShiftMalam) {
+              // Syarat Shift Malam: Harus pulang jam 07.00 pagi ke atas.
+              // Jika jam keluar antara 15.00 malam s.d 06.59 pagi, maka dicap PSW.
+              if (jamK >= 15 || jamK < 7) {
+                isPSW = true;
+              }
             }
           }
         }
         
+        // PEMBERIAN LABEL STATUS
         if (isTL && isPSW && pulangTxt !== "") statusAbsen = "TL & PSW";
         else if (isTL) statusAbsen = "TL";
         else if (isPSW && pulangTxt !== "") statusAbsen = "PSW";
