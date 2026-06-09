@@ -1,279 +1,308 @@
-function doPost(e) {
-  try {
-    var data = JSON.parse(e.postData.contents);
-    var action = data.action || "presensi"; 
-
-    // --- 1. LOGIKA PRESENSI ---
-    if (action === "presensi") {
-      var username = data.username || "Username Kosong";
-      var nama = data.nama || "Nama Kosong";
-      var jenis = data.jenis || "masuk";
-      var fotoBase64 = data.foto || "";
-      var lokasi = data.lokasi || "Tidak Diketahui";
-
-      // Membentuk format dd/mm/yyyy dan hh.mm
-      var dateObj = new Date();
-      var dd = ("0" + dateObj.getDate()).slice(-2);
-      var mm = ("0" + (dateObj.getMonth() + 1)).slice(-2);
-      var yyyy = dateObj.getFullYear();
-      
-      // TAMBAHAN: Menyisipkan tanda petik tunggal (') di depan variabel
-      var tanggal = "'" + dd + "/" + mm + "/" + yyyy;
-
-      var hh = ("0" + dateObj.getHours()).slice(-2);
-      var mnt = ("0" + dateObj.getMinutes()).slice(-2);
-      
-      // TAMBAHAN: Menyisipkan tanda petik tunggal (') di depan variabel
-      var jam = "'" + hh + "." + mnt;
-
-      var base64Data = fotoBase64.split(",")[1]; 
-      var fileName = "Absen_" + jenis + "_" + username + "_" + dateObj.getTime() + ".jpg";
-      var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'image/jpeg', fileName);
-
-      // MASUKKAN ID FOLDER GOOGLE DRIVE ANDA DI SINI
-      var folderId = "10BORea1rdDCs8SBeZCmZUsssrtSY_J27"; 
-      var folder = DriveApp.getFolderById(folderId);
-      var file = folder.createFile(blob);
-      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      
-      var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("DataAbsen");
-      // Sesuai permintaan: Nama, tanggal, jam, jenis, lokasi pos, link foto
-      sheet.appendRow([nama, tanggal, jam, jenis, lokasi, file.getUrl()]);
-
-      return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    // --- 2. LOGIKA LOGIN ---
-    else if (action === "login") {
-      var username = data.username;
-      var password = data.password;
-      var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("DataSatpam");
-      var rows = sheet.getDataRange().getValues();
-      
-      for (var i = 1; i < rows.length; i++) {
-        if (rows[i][0] == username) {
-          if (rows[i][2] == password) {
-            return ContentService.createTextOutput(JSON.stringify({ status: "success", nama: rows[i][1] })).setMimeType(ContentService.MimeType.JSON);
-          } else {
-            return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Password salah!" })).setMimeType(ContentService.MimeType.JSON);
-          }
-        }
-      }
-      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Username tidak ditemukan!" })).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    // --- 3. LOGIKA MANAJEMEN PEGAWAI & WAJAH ---
-    else if (action === "add_user") {
-      // 1. Ambil data dan paksa username jadi huruf kecil & buang spasi ujungnya
-      var username = (data.username || "").toString().trim().toLowerCase();
-      var nama = (data.nama || "").toString().trim();
-      var password = (data.password || "").toString();
-
-      // 2. Cek kelengkapan data
-      if (!username || !nama || !password) {
-         return ContentService.createTextOutput(JSON.stringify({status: "error", message: "Data tidak lengkap!"})).setMimeType(ContentService.MimeType.JSON);
-      }
-      
-      // 3. Cek larangan pakai nama admin
-      if (username === "admin") {
-         return ContentService.createTextOutput(JSON.stringify({status: "error", message: "Username 'admin' dilarang!"})).setMimeType(ContentService.MimeType.JSON);
-      }
-      
-      // 4. Cek spasi di tengah username
-      if (/\s/.test(username)) {
-         return ContentService.createTextOutput(JSON.stringify({status: "error", message: "Username tidak boleh ada spasi!"})).setMimeType(ContentService.MimeType.JSON);
-      }
-
-      // 5. Cek panjang password
-      if (password.length < 6) {
-         return ContentService.createTextOutput(JSON.stringify({status: "error", message: "Password minimal 6 karakter!"})).setMimeType(ContentService.MimeType.JSON);
-      }
-
-      var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("DataSatpam");
-      var rows = sheet.getDataRange().getValues();
-      
-      // 6. Cek apakah Username sudah pernah dipakai orang lain
-      for (var i = 1; i < rows.length; i++) {
-        if (rows[i][0].toString().toLowerCase() === username) {
-          return ContentService.createTextOutput(JSON.stringify({status: "error", message: "Username sudah terpakai! Pilih yang lain."})).setMimeType(ContentService.MimeType.JSON);
-        }
-      }
-
-      // 7. Jika lolos semua ujian di atas, baru simpan ke Google Sheets
-      sheet.appendRow([username, nama, password, ""]);
-      return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
-    }
-    else if (action === "delete_user") {
-      var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("DataSatpam");
-      var rows = sheet.getDataRange().getValues();
-      for (var i = 1; i < rows.length; i++) {
-        if (rows[i][0] == data.username) { sheet.deleteRow(i + 1); break; }
-      }
-      return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
-    }
-    else if (action === "simpan_wajah") {
-      var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("DataSatpam");
-      var rows = sheet.getDataRange().getValues();
-      for (var i = 1; i < rows.length; i++) {
-        if (rows[i][0] == data.username) {
-          sheet.getRange(i + 1, 4).setValue(data.descriptor);
-          break;
-        }
-      }
-      return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    // --- 4. LOGIKA MANAJEMEN LOKASI ---
-    else if (action === "add_location") {
-      var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("DataLokasi");
-      sheet.appendRow([new Date().getTime(), data.nama_lokasi, data.latitude, data.longitude, data.radius]);
-      return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
-    }
-    else if (action === "delete_location") {
-      var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("DataLokasi");
-      var rows = sheet.getDataRange().getValues();
-      for (var i = 1; i < rows.length; i++) {
-        if (rows[i][0] == data.id) { sheet.deleteRow(i + 1); break; }
-      }
-      return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
-    }
-    else if (action === "update_radius") {
-      var id = data.id;
-      var radius = data.radius;
-      var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("DataLokasi"); // Catatan: Sesuaikan dengan nama sheet tempat Anda menyimpan data koordinat pos
-      var rows = sheet.getDataRange().getValues();
-      
-      for (var i = 1; i < rows.length; i++) {
-        // Mencari baris yang ID-nya cocok
-        if (rows[i][0].toString() === id.toString()) {
-          // Angka 5 di bawah ini berarti kolom ke-5 (Radius). 
-          // Jika di Google Sheets Anda posisi kolom Radius berbeda (misal kolom ke-4), ganti angka 5 menjadi urutan kolom Anda.
-          sheet.getRange(i + 1, 5).setValue(radius); 
-          return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
-        }
-      }
-      return ContentService.createTextOutput(JSON.stringify({status: "error", message: "ID Pos tidak ditemukan"})).setMimeType(ContentService.MimeType.JSON);
-    }
-  } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({status: "error", message: error.message})).setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
 function doGet(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
   var action = e.parameter.action;
-
-  if (action === "get_descriptor") {
-    var username = e.parameter.username;
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("DataSatpam");
-    var rows = sheet.getDataRange().getValues();
-    for (var i = 1; i < rows.length; i++) {
-      if (rows[i][0] == username) {
-        return ContentService.createTextOutput(JSON.stringify({ status: "success", descriptor: rows[i][3] })).setMimeType(ContentService.MimeType.JSON);
-      }
-    }
-    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Wajah belum terdaftar" })).setMimeType(ContentService.MimeType.JSON);
-  }
-  else if (action === "get_users") {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("DataSatpam");
+  
+  if (action === "get_users") {
+    var sheet = ss.getSheetByName("DataSatpam");
     var rows = sheet.getDataRange().getValues();
     var users = [];
     for (var i = 1; i < rows.length; i++) {
-      users.push({ username: rows[i][0], nama: rows[i][1], status_wajah: (rows[i][3] && rows[i][3] !== "") ? "Sudah" : "Belum" });
+      users.push({
+        username: rows[i][0],
+        nama: rows[i][1],
+        status_wajah: rows[i][3] ? "Sudah" : "Belum"
+      });
     }
     return ContentService.createTextOutput(JSON.stringify(users)).setMimeType(ContentService.MimeType.JSON);
   }
+  
   else if (action === "get_locations") {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("DataLokasi");
+    var sheet = ss.getSheetByName("DataLokasi");
     var rows = sheet.getDataRange().getValues();
     var locs = [];
     for (var i = 1; i < rows.length; i++) {
-      locs.push({ id: rows[i][0], nama_lokasi: rows[i][1], latitude: rows[i][2], longitude: rows[i][3], radius: rows[i][4] });
+      locs.push({
+        id: rows[i][0],
+        nama_lokasi: rows[i][1],
+        latitude: rows[i][2],
+        longitude: rows[i][3],
+        radius: rows[i][4]
+      });
     }
     return ContentService.createTextOutput(JSON.stringify(locs)).setMimeType(ContentService.MimeType.JSON);
   }
-  else if (e.parameter.action === "get_riwayat_user") {
-    var usernameReq = e.parameter.username;
-    
-    // Ganti "DataPresensi" dengan nama tab sheet tempat absen tersimpan
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("DataPresensi"); 
+  
+  else if (action === "get_descriptor") {
+    var sheet = ss.getSheetByName("DataSatpam");
+    var rows = sheet.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString() === e.parameter.username) {
+        return ContentService.createTextOutput(JSON.stringify({status: "success", descriptor: rows[i][3]})).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({status: "error", message: "Wajah belum terdaftar"})).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  // --- FITUR BARU: KALKULASI TL & PSW OTOMATIS ---
+  else if (action === "get_riwayat_user") {
+    var uname = e.parameter.username;
+    var sheet = ss.getSheetByName("DataPresensi");
     var rows = sheet.getDataRange().getValues();
     var riwayat = [];
     
-    // Looping dari baris paling bawah (data paling baru) ke atas
     for (var i = rows.length - 1; i > 0; i--) {
-      
-      // ASUMSI KOLOM (Sesuaikan dengan urutan kolom di Google Sheets Anda)
-      // Array dimulai dari 0. Jika Username ada di kolom B, berarti index-nya 1.
-      var unameSheet = rows[i][1]; // Kolom B (Username)
-      
-      if (unameSheet === usernameReq) {
+      if (rows[i][1].toString() === uname) {
+        var masukTxt = rows[i][3] ? rows[i][3].toString() : "";
+        var pulangTxt = rows[i][4] ? rows[i][4].toString() : "";
+        var tsM = parseFloat(rows[i][9]);  // TS Masuk
+        var tsK = parseFloat(rows[i][10]); // TS Keluar
+        
+        var statusAbsen = "Hadir";
+        var isTL = false;
+        var isPSW = false;
+        
+        if (masukTxt !== "") {
+          var jamM = parseInt(masukTxt.split(".")[0]);
+          var mntM = parseInt(masukTxt.split(".")[1]);
+          
+          // Deteksi Terlambat (Batas 08:15 Pagi & 20:15 Malam)
+          if ((jamM === 8 && mntM > 15) || (jamM > 8 && jamM < 16)) isTL = true;
+          if ((jamM === 20 && mntM > 15) || (jamM > 20 || jamM < 4)) isTL = true;
+          
+          // Deteksi PSW
+          if (pulangTxt === "") {
+            isPSW = true;
+            statusAbsen = "PSW (Lupa Absen)";
+          } else if (!isNaN(tsM) && !isNaN(tsK)) {
+            var durasiShift = (tsK - tsM) / (1000 * 60 * 60);
+            // Anggap shift normal 12 jam, minimal kerja 11.5 jam
+            if (durasiShift < 11.5) { 
+              isPSW = true;
+            }
+          }
+        }
+        
+        if (isTL && isPSW && pulangTxt !== "") statusAbsen = "TL & PSW";
+        else if (isTL) statusAbsen = "TL";
+        else if (isPSW && pulangTxt !== "") statusAbsen = "PSW";
+        else if (masukTxt === "") statusAbsen = "Kosong";
+
         riwayat.push({
-          tanggal: rows[i][0], // Kolom A (Tanggal)
-          masuk: rows[i][3],   // Kolom D (Jam Masuk)
-          pulang: rows[i][4],  // Kolom E (Jam Pulang)
-          lokasi: rows[i][5],  // Kolom F (Lokasi Pos)
-          status: rows[i][7] || "Hadir" // Kolom H (Status Tepat Waktu/Terlambat)
+          tanggal: rows[i][0],
+          masuk: masukTxt,
+          pulang: pulangTxt,
+          lokasi: rows[i][5],
+          status: statusAbsen
         });
       }
-      
-      // Batasi hanya mengirim 30 data riwayat terakhir agar tidak berat
       if (riwayat.length >= 30) break; 
     }
-    
-    // Kirim data kembali ke frontend
     return ContentService.createTextOutput(JSON.stringify(riwayat)).setMimeType(ContentService.MimeType.JSON);
   }
-  else {
-    // Membaca status untuk Dashboard (dicari berdasarkan Nama)
+
+  // --- FITUR BARU: MENGINGAT LOKASI POS SAAT MASUK ---
+  else if (e.parameter.nama) {
     var nama = e.parameter.nama;
-    var responseData = { masuk: "--.-- WIB", keluar: "--.-- WIB", kode_status: 0 };
-    if (!nama) return ContentService.createTextOutput(JSON.stringify(responseData)).setMimeType(ContentService.MimeType.JSON);
-
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("DataAbsen");
-    var data = sheet.getDataRange().getValues();
-    if (data.length <= 1) return ContentService.createTextOutput(JSON.stringify(responseData)).setMimeType(ContentService.MimeType.JSON);
-
-    var sekarang = new Date();
-    var batas18Jam = new Date(sekarang.getTime() - (18 * 60 * 60 * 1000)); 
-    var waktuMasukTerakhir = null;
-
-    // Cari Jam Masuk
-    for (var i = data.length - 1; i >= 1; i--) {
-      var rowNama = data[i][0], rowTanggal = data[i][1], rowJam = data[i][2], rowJenis = data[i][3];
+    var sheet = ss.getSheetByName("DataPresensi");
+    var rows = sheet.getDataRange().getValues();
+    
+    var status_kode = 0; 
+    var jam_masuk = "--.-- WIB";
+    var jam_keluar = "--.-- WIB";
+    var lokasi_pos_masuk = ""; // Variabel pengingat pos
+    
+    var lastRowIdx = -1;
+    for (var i = rows.length - 1; i > 0; i--) {
+      if (rows[i][2].toString() === nama) {
+        lastRowIdx = i;
+        break;
+      }
+    }
+    
+    if (lastRowIdx !== -1) {
+      var row = rows[lastRowIdx];
+      var nowMs = new Date().getTime(); 
       
-      if (rowNama == nama && rowJenis == 'masuk') {
-        var parts = rowTanggal.split("/");
-        var timeParts = rowJam.split(".");
-        var tgl = new Date(parts[2], parts[1]-1, parts[0], timeParts[0], timeParts[1]);
+      if (!row[4] || row[4].toString().trim() === "") {
+        var msSejakMasuk = nowMs - parseFloat(row[9]); 
+        var jamSejakMasuk = msSejakMasuk / (1000 * 60 * 60);
         
-        if (tgl >= batas18Jam) {
-          waktuMasukTerakhir = tgl;
-          responseData.masuk = rowJam + " WIB";
-          responseData.kode_status = 1; 
+        if (jamSejakMasuk < 16) {
+          status_kode = 1; 
+          jam_masuk = row[3] + " WIB";
+          lokasi_pos_masuk = row[5] ? row[5].toString() : ""; // Mengambil nama pos masuk
+        } else {
+          status_kode = 0; 
+        }
+      } 
+      else {
+        var msSejakKeluar = nowMs - parseFloat(row[10]); 
+        var jamSejakKeluar = msSejakKeluar / (1000 * 60 * 60);
+        
+        if (jamSejakKeluar < 8) {
+          status_kode = 2; 
+          jam_masuk = row[3] + " WIB";
+          jam_keluar = row[4] + " WIB";
+          lokasi_pos_masuk = row[5] ? row[5].toString() : ""; 
+        } else {
+          status_kode = 0; 
+        }
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      kode_status: status_kode,
+      masuk: jam_masuk,
+      keluar: jam_keluar,
+      lokasi_masuk: lokasi_pos_masuk // Mengirim info pos masuk ke Frontend
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doPost(e) {
+  var data = JSON.parse(e.postData.contents);
+  var action = data.action;
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  if (action === "login") {
+    var usr = data.username.toLowerCase().trim();
+    var pwd = data.password;
+    if (usr === "admin" && pwd === "admin123") {
+      return ContentService.createTextOutput(JSON.stringify({status: "success", nama: "Administrator"})).setMimeType(ContentService.MimeType.JSON);
+    }
+    var sheet = ss.getSheetByName("DataSatpam");
+    var rows = sheet.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString().toLowerCase() === usr && rows[i][2].toString() === pwd) {
+        return ContentService.createTextOutput(JSON.stringify({status: "success", nama: rows[i][1]})).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({status: "error", message: "Username atau Password salah!"})).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  else if (action === "add_user") {
+    var usr = data.username.toLowerCase().trim();
+    if (/\s/.test(usr)) return ContentService.createTextOutput(JSON.stringify({status: "error", message: "Spasi dilarang!"})).setMimeType(ContentService.MimeType.JSON);
+    if (data.password.length < 6) return ContentService.createTextOutput(JSON.stringify({status: "error", message: "Password minimal 6 karakter!"})).setMimeType(ContentService.MimeType.JSON);
+    
+    var sheet = ss.getSheetByName("DataSatpam");
+    var rows = sheet.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString().toLowerCase() === usr) {
+        return ContentService.createTextOutput(JSON.stringify({status: "error", message: "Username sudah terpakai!"})).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    sheet.appendRow([usr, data.nama, data.password, ""]);
+    return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  else if (action === "delete_user") {
+    var sheet = ss.getSheetByName("DataSatpam");
+    var rows = sheet.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString() === data.username) {
+        sheet.deleteRow(i + 1);
+        return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+  }
+  
+  else if (action === "add_location") {
+    var sheet = ss.getSheetByName("DataLokasi");
+    var id_pos = "POS" + new Date().getTime(); 
+    sheet.appendRow([id_pos, data.nama_lokasi, data.latitude, data.longitude, data.radius]);
+    return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  else if (action === "update_radius") {
+    var sheet = ss.getSheetByName("DataLokasi");
+    var rows = sheet.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString() === data.id.toString()) {
+        sheet.getRange(i + 1, 5).setValue(data.radius); 
+        return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+  }
+  
+  else if (action === "delete_location") {
+    var sheet = ss.getSheetByName("DataLokasi");
+    var rows = sheet.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString() === data.id.toString()) {
+        sheet.deleteRow(i + 1);
+        return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+  }
+  
+  else if (action === "simpan_wajah") {
+    var sheet = ss.getSheetByName("DataSatpam");
+    var rows = sheet.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString() === data.username) {
+        sheet.getRange(i + 1, 4).setValue(data.descriptor);
+        return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+  }
+  
+  else if (action === "presensi") {
+    var sheet = ss.getSheetByName("DataPresensi");
+    
+    var now = new Date();
+    var tanggal_wib = Utilities.formatDate(now, "GMT+7", "dd-MM-yyyy");
+    var jam_wib = Utilities.formatDate(now, "GMT+7", "HH.mm");
+    var time_milidetik = now.getTime();
+    
+    var fotoUrl = "";
+    try {
+      if (data.foto && data.foto !== "") {
+        var base64Data = data.foto.split(",")[1]; 
+        var fileName = "Absen_" + data.jenis + "_" + data.username + "_" + time_milidetik + ".jpg";
+        var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'image/jpeg', fileName);
+        var folder = DriveApp.getFolderById("10BORea1rdDCs8SBeZCmZUsssrtSY_J27");
+        var file = folder.createFile(blob);
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        fotoUrl = file.getUrl();
+      }
+    } catch(e) { }
+
+    if (data.jenis === "masuk") {
+      sheet.appendRow([
+        tanggal_wib,       
+        data.username,     
+        data.nama,         
+        jam_wib,           
+        "",                
+        data.lokasi,       
+        "",                
+        fotoUrl,           
+        "",                
+        time_milidetik,    
+        ""                 
+      ]);
+    } 
+    else if (data.jenis === "keluar") {
+      var rows = sheet.getDataRange().getValues();
+      for (var i = rows.length - 1; i > 0; i--) {
+        if (rows[i][1].toString() === data.username) {
+          
+          var tsMasuk = parseFloat(rows[i][9]); 
+          var selisihJam = (time_milidetik - tsMasuk) / (1000 * 60 * 60);
+          
+          if (selisihJam < 16) {
+            sheet.getRange(i + 1, 5).setValue(jam_wib);        
+            sheet.getRange(i + 1, 7).setValue(data.lokasi);    
+            if (fotoUrl !== "") {
+              sheet.getRange(i + 1, 9).setValue(fotoUrl);      
+            }
+            sheet.getRange(i + 1, 11).setValue(time_milidetik);
+          }
           break; 
         }
       }
     }
-
-    // Cari Jam Keluar
-    if (waktuMasukTerakhir) {
-      for (var j = data.length - 1; j >= 1; j--) {
-        var rNama = data[j][0], rTgl = data[j][1], rJam = data[j][2], rJns = data[j][3];
-        if (rNama == nama && rJns == 'keluar') {
-          var p2 = rTgl.split("/");
-          var t2 = rJam.split(".");
-          var tglKeluar = new Date(p2[2], p2[1]-1, p2[0], t2[0], t2[1]);
-          
-          if (tglKeluar > waktuMasukTerakhir) {
-            responseData.keluar = rJam + " WIB";
-            responseData.kode_status = 2; 
-            break; 
-          }
-        }
-      }
-    }
-    return ContentService.createTextOutput(JSON.stringify(responseData)).setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
   }
 }
-
-function doOptions(e) { return ContentService.createTextOutput("").setMimeType(ContentService.MimeType.TEXT).setHeaders({ "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" }); }

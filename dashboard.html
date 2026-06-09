@@ -100,6 +100,7 @@
         }
 
         let jenisAbsenSekarang = 'masuk'; 
+        let lokasiMasukAwal = ''; // PENGINGAT LOKASI MASUK
 
         function setSapaan() {
             const namaPanggilan = userNama.split(' ')[0];
@@ -118,6 +119,9 @@
                 .then(data => {
                     document.getElementById('jamMasuk').innerText = data.masuk;
                     document.getElementById('jamKeluar').innerText = data.keluar;
+                    
+                    // Simpan memori lokasi masuk dari server
+                    lokasiMasukAwal = data.lokasi_masuk || "";
 
                     if (data.kode_status === 0) {
                         statusBadge.innerHTML = '<i class="fa-solid fa-user-clock mr-1"></i> Belum Presensi';
@@ -161,14 +165,19 @@
                 if(data && data.length > 0) {
                     let logHtml = '';
                     data.forEach(item => {
-                        const statusColor = item.status === 'Tepat Waktu' ? 'bg-green-100 text-green-700' : 'bg-green-100 text-green-700'; // Default Hadir hijau
                         
-                        // --- PENERJEMAH TANGGAL (MEMPERBAIKI ANGKA 000) ---
+                        // Perubahan Warna Indikator Status
+                        let statusColor = 'bg-green-100 text-green-700'; // Default Hadir
+                        if (item.status.includes('TL') || item.status.includes('PSW')) {
+                            statusColor = 'bg-red-100 text-red-700'; // Merah jika Pelanggaran
+                        }
+
+                        // Penambahan Hari pada Format Tanggal
                         let tglCantik = item.tanggal;
                         if (tglCantik && tglCantik.toString().includes('T')) {
                             const dateObj = new Date(tglCantik);
-                            // Mengubah ke format "6 September 2026"
-                            tglCantik = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                            // Menambahkan opsi 'weekday: long' agar memunculkan hari
+                            tglCantik = dateObj.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
                         }
 
                         logHtml += `
@@ -223,6 +232,17 @@
                             }
 
                             if (dalamArea) {
+                                // --- VALIDASI GEMBOK POS KELUAR ---
+                                if (jenisAbsenSekarang === 'keluar' && lokasiMasukAwal !== "") {
+                                    if (namaPosSesuai !== lokasiMasukAwal) {
+                                        alert(`❌ AKSES DITOLAK!\n\nAnda absen masuk di pos: ${lokasiMasukAwal}.\nSilakan kembali ke pos tersebut untuk absen keluar.`);
+                                        btnLokasi.innerHTML = teksAsli;
+                                        btnLokasi.className = kelasAsli;
+                                        btnLokasi.disabled = false;
+                                        return; // Hentikan proses, jangan buka liveness
+                                    }
+                                }
+
                                 localStorage.setItem('jenis_absen_kirim', jenisAbsenSekarang);
                                 localStorage.setItem('lokasi_pos_kirim', namaPosSesuai);
                                 window.location.href = URL_LIVENESS;
