@@ -117,10 +117,15 @@ function doGet(e) {
     // 2. Cek Status Presensi dari DataPresensi
     var sheet = ss.getSheetByName("DataPresensi");
     var rows = sheet.getDataRange().getValues();
+    
     var status_kode = 0; 
     var jam_masuk = "--.-- WIB";
     var jam_keluar = "--.-- WIB";
     var lokasi_pos_masuk = ""; 
+    
+    // VARIABEL BARU UNTUK FITUR DASHBOARD
+    var menit_telat = 0;
+    var durasi_jam = 0;
     
     var lastRowIdx = -1;
     for (var i = rows.length - 1; i > 0; i--) {
@@ -130,6 +135,25 @@ function doGet(e) {
     if (lastRowIdx !== -1) {
       var row = rows[lastRowIdx];
       var nowMs = new Date().getTime(); 
+      
+      // Hitung Menit Terlambat dari Jam Masuk (Kolom D)
+      if (row[3] && row[3].toString().trim() !== "") {
+        var jamM = parseInt(row[3].toString().split(".")[0]);
+        var mntM = parseInt(row[3].toString().split(".")[1]);
+        
+        if (jamM >= 4 && jamM < 15) { // Shift Pagi
+          var batasPagi = 7 * 60; // Jam 07.00
+          var waktuMasuk = jamM * 60 + mntM;
+          if (waktuMasuk > batasPagi) menit_telat = waktuMasuk - batasPagi;
+        } else if (jamM >= 15 || jamM < 4) { // Shift Malam
+          var batasMalam = 19 * 60; // Jam 19.00
+          var waktuMasuk = jamM * 60 + mntM;
+          if (jamM < 4) waktuMasuk += 24 * 60; // Koreksi jam 00 - 03 pagi
+          if (waktuMasuk > batasMalam) menit_telat = waktuMasuk - batasMalam;
+        }
+      }
+
+      // Deteksi Sedang Shift / Selesai
       if (!row[4] || row[4].toString().trim() === "") {
         var msSejakMasuk = nowMs - parseFloat(row[9]); 
         var jamSejakMasuk = msSejakMasuk / (1000 * 60 * 60);
@@ -147,13 +171,23 @@ function doGet(e) {
           jam_masuk = row[3] + " WIB";
           jam_keluar = row[4] + " WIB";
           lokasi_pos_masuk = row[5] ? row[5].toString() : ""; 
+          
+          // Hitung Total Durasi Kerja Shift Tersebut
+          durasi_jam = (parseFloat(row[10]) - parseFloat(row[9])) / (1000 * 60 * 60);
+          
         } else { status_kode = 0; }
       }
     }
     
+    // Kirim data tambahan ke Frontend
     return ContentService.createTextOutput(JSON.stringify({
-      kode_status: status_kode, masuk: jam_masuk, keluar: jam_keluar,
-      lokasi_masuk: lokasi_pos_masuk, status_dna: stat_dna // Mengirim Status DNA
+      kode_status: status_kode, 
+      masuk: jam_masuk, 
+      keluar: jam_keluar,
+      lokasi_masuk: lokasi_pos_masuk, 
+      status_dna: stat_dna,
+      telat: menit_telat,     // Mengirim jumlah menit terlambat
+      durasi: durasi_jam      // Mengirim jumlah durasi kerja
     })).setMimeType(ContentService.MimeType.JSON);
   }
 }
