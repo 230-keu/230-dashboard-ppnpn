@@ -150,7 +150,8 @@
         }
 
         function prosesLogin() {
-            const usr = document.getElementById('username').value.trim();
+            // PERBAIKAN: Paksa input menjadi huruf kecil semua (toLowerCase)
+            const usr = document.getElementById('username').value.trim().toLowerCase(); 
             const pass = document.getElementById('password').value;
             const pesan = document.getElementById('pesanLogin');
             const btn = document.getElementById('btnLogin');
@@ -174,6 +175,8 @@
             .then(data => {
                 if(data.status === "success") {
                     pesan.innerHTML = '<span class="text-green-500"><i class="fa-solid fa-circle-check"></i> Berhasil masuk!</span>';
+                    
+                    // Simpan versi huruf kecil ke memori HP
                     localStorage.setItem('username', usr);
                     localStorage.setItem('user_nama', data.nama);
                     
@@ -192,10 +195,11 @@
             });
         }
 
-        // --- SEKARANG MENGGUNAKAN LOADING OVERLAY SETELAH SUKSES DAFTAR ---
         function prosesDaftar() {
             const usrRaw = document.getElementById('regUsername').value;
-            const nama = document.getElementById('regNama').value.trim();
+            // Mengambil nama, mengubahnya jadi huruf kecil semua, lalu menghurufbesarkan awal setiap kata
+            const namaRaw = document.getElementById('regNama').value.trim();
+            const nama = namaRaw.toLowerCase().replace(/\b\w/g, huruf => huruf.toUpperCase());
             const pass = document.getElementById('regPassword').value;
             const pesan = document.getElementById('pesanDaftar');
             const btn = document.getElementById('btnDaftar');
@@ -205,13 +209,14 @@
                 return;
             }
 
-            const usr = usrRaw.trim(); 
+            // PERBAIKAN: Paksa input pendaftaran menjadi huruf kecil semua
+            const usr = usrRaw.trim().toLowerCase(); 
 
             if(!usr || !nama || !pass) {
                 pesan.innerHTML = '<span class="text-red-500"><i class="fa-solid fa-circle-exclamation"></i> Wajib diisi!</span>';
                 return;
             }
-            if(usr.toLowerCase() === 'admin') {
+            if(usr === 'admin') {
                 pesan.innerHTML = '<span class="text-red-500">Username tidak diizinkan!</span>';
                 return;
             }
@@ -231,7 +236,6 @@
                 if(data.status === "success") {
                     pesan.innerHTML = '<span class="text-green-500"><i class="fa-solid fa-circle-check"></i> Sukses! Mengalihkan...</span>';
                     
-                    // 1. Tampilkan Loading Overlay tepat setelah sukses mendaftar
                     document.getElementById('loadingOverlay').classList.remove('hidden');
 
                     document.getElementById('regUsername').value = '';
@@ -240,13 +244,12 @@
                     btn.innerHTML = teksAsli;
                     btn.disabled = false;
 
-                    // 2. Beri jeda transisi 2 detik untuk efek transisi yang mulus
                     setTimeout(() => {
-                        document.getElementById('loadingOverlay').classList.add('hidden'); // Sembunyikan overlay
-                        tukarForm('login'); // Alihkan kembali ke form login
+                        document.getElementById('loadingOverlay').classList.add('hidden');
+                        tukarForm('login'); 
                     }, 2000); 
                 } else {
-                    pesan.innerHTML = '<span class="text-red-500">Pendaftaran gagal.</span>';
+                    pesan.innerHTML = `<span class="text-red-500">${data.message}</span>`;
                     btn.innerHTML = teksAsli;
                     btn.disabled = false;
                 }
