@@ -173,19 +173,17 @@
                         if (matcher.findBestMatch(det.descriptor).label === localStorage.getItem('username')) {
                             tahap = 3; prog.style.width = "100%"; pPersen.innerText = "100%";
                             
-                            // 1. AMBIL FOTO DULU SEBELUM KAMERA DIMATIKAN
+                            // KOMPRESI FOTO PRESENSI
+                            const targetWidth = 400;
+                            const scale = targetWidth / video.videoWidth;
+                            const targetHeight = video.videoHeight * scale;
+                            
                             const tc = document.createElement('canvas'); 
-                            tc.width = dim.width; 
-                            tc.height = dim.height;
-                            tc.getContext('2d').drawImage(video, 0, 0);
-                            const fotoTercapture = tc.toDataURL('image/jpeg', 0.8);
+                            tc.width = targetWidth; 
+                            tc.height = targetHeight;
+                            tc.getContext('2d').drawImage(video, 0, 0, targetWidth, targetHeight);
+                            const fotoTercapture = tc.toDataURL('image/jpeg', 0.6);
                             
-                            // 2. SETELAH FOTO DIAMBIL, BARU MATIKAN KAMERA
-                            if (video.srcObject) {
-                                video.srcObject.getTracks().forEach(track => track.stop());
-                            }
-                            
-                            // Mengunci Waktu Capture Saat Ini
                             const waktuSkrg = new Date();
                             const jamCapture = `${String(waktuSkrg.getHours()).padStart(2,'0')}.${String(waktuSkrg.getMinutes()).padStart(2,'0')}`;
                             
@@ -194,23 +192,33 @@
                             document.getElementById('overlaySukses').classList.remove('hidden');
                             document.getElementById('lineScan').style.display = "none";
                             
-                            // 3. KIRIM DATA KE SERVER
+                            // KIRIM DATA KE SERVER
                             fetch(URL_GAS, { 
                                 method: 'POST', 
                                 body: JSON.stringify({ 
                                     action: 'presensi', 
-                                    foto: fotoTercapture, // Masukkan foto yang sudah diamankan tadi
+                                    foto: fotoTercapture, 
                                     jenis: localStorage.getItem('jenis_absen_kirim'), 
                                     username: localStorage.getItem('username'), 
                                     nama: localStorage.getItem('user_nama'), 
                                     lokasi: localStorage.getItem('lokasi_pos_kirim') 
                                 }) 
-                            }).then(r => r.json()).then(res => {
+                            }).then(res => res.json()).then(res => {
+                                // Matikan Kamera setelah server merespon
+                                if (video.srcObject) { video.srcObject.getTracks().forEach(track => track.stop()); }
+                                
                                 if(res.status === "success") {
                                     teks.innerHTML = `<i class="fa-solid fa-check-double mr-2"></i> Presensi Berhasil Dicatat Jam ${jamCapture} WIB!`;
                                     btnSelesai.classList.remove('hidden');
                                     btnSelesai.classList.add('flex');
+                                } else {
+                                    alert("❌ Gagal menyimpan absen ke server.");
+                                    kembaliKeDashboard();
                                 }
+                            }).catch(() => {
+                                if (video.srcObject) { video.srcObject.getTracks().forEach(track => track.stop()); }
+                                alert("❌ Jaringan lambat / Timeout. Cek histori absen Anda.");
+                                kembaliKeDashboard();
                             });
                         } else {
                             teks.innerHTML = '<i class="fa-solid fa-user-slash mr-2"></i> Wajah Tidak Dikenali!';

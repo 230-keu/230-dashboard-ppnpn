@@ -268,29 +268,48 @@
             if (deteksi) {
                 const descriptorArray = Array.from(deteksi.descriptor);
                 
-                // Ambil Screenshot Verifikasi Wajah
-                const displaySize = { width: video.videoWidth, height: video.videoHeight };
+                // 1. KOMPRESI FOTO (Anti Black Screen & Anti Timeout)
+                const targetWidth = 400; // Perkecil resolusi agar ringan
+                const scale = targetWidth / video.videoWidth;
+                const targetHeight = video.videoHeight * scale;
+                
                 const tc = document.createElement('canvas'); 
-                tc.width = displaySize.width; tc.height = displaySize.height;
-                tc.getContext('2d').drawImage(video, 0, 0);
-                const fotoVerifikasi = tc.toDataURL('image/jpeg', 0.8);
+                tc.width = targetWidth; 
+                tc.height = targetHeight;
+                tc.getContext('2d').drawImage(video, 0, 0, targetWidth, targetHeight);
+                const fotoVerifikasi = tc.toDataURL('image/jpeg', 0.6); // Kompresi kualitas 60%
 
-                // Matikan Kamera
-                tutupKameraSetup();
+                // Tampilkan loading
                 document.getElementById('loadingOverlay').classList.remove('hidden');
 
-                // Kirim Pengajuan ke Server
+                // 2. KIRIM DATA KE SERVER (Kamera sengaja tidak dimatikan dulu di sini)
                 fetch(URL_GAS, { 
                     method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: 'ajukan_wajah_mandiri', username: userUsername, descriptor: JSON.stringify(descriptorArray), foto: fotoVerifikasi }) 
-                }).then(() => { 
+                    body: JSON.stringify({ 
+                        action: 'ajukan_wajah_mandiri', 
+                        username: userUsername, 
+                        descriptor: JSON.stringify(descriptorArray), 
+                        foto: fotoVerifikasi 
+                    }) 
+                })
+                .then(res => res.json())
+                .then(data => {
                     document.getElementById('loadingOverlay').classList.add('hidden');
-                    alert("✅ Wajah Berhasil Diajukan!\n\nSilakan lapor kepada Admin untuk dilakukan persetujuan."); 
-                    muatStatus(); // Reload Status
-                }).catch(() => {
+                    tutupKameraSetup(); // Matikan kamera setelah data dipastikan aman di server
+                    
+                    if (data.status === "success") {
+                        alert("✅ Wajah Berhasil Diajukan!\n\nSilakan lapor kepada Admin untuk dilakukan persetujuan."); 
+                        muatStatus(); 
+                    } else {
+                        alert("❌ Gagal: " + (data.message || "Kesalahan Server"));
+                    }
+                })
+                .catch(err => {
                     document.getElementById('loadingOverlay').classList.add('hidden');
-                    alert("Gagal koneksi ke server!");
+                    tutupKameraSetup();
+                    alert("❌ Server sibuk atau jaringan lambat (Timeout). Silakan coba lagi.");
                 });
+
             } else {
                 alert("Wajah tidak terdeteksi jelas!"); 
                 document.getElementById('btnSimpanDNA').style.display = "flex";
