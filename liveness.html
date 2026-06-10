@@ -153,82 +153,119 @@
             teks.innerHTML = '<i class="fa-solid fa-eye mr-2"></i> Verifikasi Liveness: <b>Silakan Berkedip</b>';
             prog.style.width = "20%"; pPersen.innerText = "20%";
 
-            const int = setInterval(async () => {
-                if (tahap === 3) { clearInterval(int); return; }
-                const det = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceExpressions().withFaceDescriptor();
-                
-                if (det) {
-                    const ctx = canvas.getContext('2d');
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    faceapi.draw.drawFaceLandmarks(canvas, faceapi.resizeResults(det, dim));
+            let isDeteksiAktif = true; // Saklar pembunuh loop
 
-                    if (tahap === 1) {
-                        const rata = (hitungEAR(det.landmarks.getLeftEye()) + hitungEAR(det.landmarks.getRightEye())) / 2;
-                        if (rata < 0.28) { 
-                            tahap = 2; prog.style.width = "60%"; pPersen.innerText = "60%";
-                            teks.innerHTML = '<i class="fa-solid fa-face-smile mr-2"></i> Bagus! Sekarang <b>Tersenyumlah</b>';
-                            teks.className = "text-center text-sm font-bold text-indigo-600 bg-indigo-50 py-2.5 rounded-xl border border-indigo-100 mb-4 fade-in";
-                        }
-                    } else if (tahap === 2 && det.expressions.happy > 0.8) {
-                        if (matcher.findBestMatch(det.descriptor).label === localStorage.getItem('username')) {
-                            tahap = 3; prog.style.width = "100%"; pPersen.innerText = "100%";
-                            
-                            // KOMPRESI FOTO PRESENSI
-                            const targetWidth = 400;
-                            const scale = targetWidth / video.videoWidth;
-                            const targetHeight = video.videoHeight * scale;
-                            
-                            const tc = document.createElement('canvas'); 
-                            tc.width = targetWidth; 
-                            tc.height = targetHeight;
-                            tc.getContext('2d').drawImage(video, 0, 0, targetWidth, targetHeight);
-                            const fotoTercapture = tc.toDataURL('image/jpeg', 0.6);
-                            
-                            const waktuSkrg = new Date();
-                            const jamCapture = `${String(waktuSkrg.getHours()).padStart(2,'0')}.${String(waktuSkrg.getMinutes()).padStart(2,'0')}`;
-                            
-                            teks.innerHTML = `<i class="fa-solid fa-cloud-upload fa-bounce mr-2"></i> Identitas Cocok! Menyimpan...`;
-                            teks.className = "text-center text-sm font-bold text-green-600 bg-green-50 py-2.5 rounded-xl border border-green-100 mb-6 fade-in";
-                            document.getElementById('overlaySukses').classList.remove('hidden');
-                            document.getElementById('lineScan').style.display = "none";
-                            
-                            // KIRIM DATA KE SERVER
-                            fetch(URL_GAS, { 
-                                method: 'POST', 
-                                body: JSON.stringify({ 
-                                    action: 'presensi', 
-                                    foto: fotoTercapture, 
-                                    jenis: localStorage.getItem('jenis_absen_kirim'), 
-                                    username: localStorage.getItem('username'), 
-                                    nama: localStorage.getItem('user_nama'), 
-                                    lokasi: localStorage.getItem('lokasi_pos_kirim') 
-                                }) 
-                            }).then(res => res.json()).then(res => {
-                                // Matikan Kamera setelah server merespon
-                                if (video.srcObject) { video.srcObject.getTracks().forEach(track => track.stop()); }
-                                
-                                if(res.status === "success") {
-                                    teks.innerHTML = `<i class="fa-solid fa-check-double mr-2"></i> Presensi Berhasil Dicatat Jam ${jamCapture} WIB!`;
-                                    btnSelesai.classList.remove('hidden');
-                                    btnSelesai.classList.add('flex');
-                                } else {
-                                    alert("❌ Gagal menyimpan absen ke server.");
-                                    kembaliKeDashboard();
+            // ANTI-FREEZE LOOP: Menggunakan fungsi rekursif yang menunggu frame selesai
+            async function jalankanDeteksi() {
+                if (!isDeteksiAktif) return;
+
+                try {
+                    // Jika masih di tahap berkedip atau senyum, gunakan MODE RINGAN
+                    if (tahap === 1 || tahap === 2) {
+                        // TANPA withFaceDescriptor() -> Sangat ringan dan mulus di HP kentang!
+                        const detLiveness = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceExpressions();
+                        
+                        if (detLiveness) {
+                            const ctx = canvas.getContext('2d');
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            faceapi.draw.drawFaceLandmarks(canvas, faceapi.resizeResults(detLiveness, dim));
+
+                            if (tahap === 1) {
+                                const rata = (hitungEAR(detLiveness.landmarks.getLeftEye()) + hitungEAR(detLiveness.landmarks.getRightEye())) / 2;
+                                if (rata < 0.28) { 
+                                    tahap = 2; prog.style.width = "60%"; pPersen.innerText = "60%";
+                                    teks.innerHTML = '<i class="fa-solid fa-face-smile mr-2"></i> Bagus! Sekarang <b>Tersenyumlah</b>';
+                                    teks.className = "text-center text-sm font-bold text-indigo-600 bg-indigo-50 py-2.5 rounded-xl border border-indigo-100 mb-4 fade-in";
                                 }
-                            }).catch(() => {
-                                if (video.srcObject) { video.srcObject.getTracks().forEach(track => track.stop()); }
-                                alert("❌ Jaringan lambat / Timeout. Cek histori absen Anda.");
-                                kembaliKeDashboard();
-                            });
+                            } 
+                            else if (tahap === 2 && detLiveness.expressions.happy > 0.8) {
+                                // TAHAP 3: Liveness lulus! Sekarang masuk ke MODE BERAT (Cek DNA)
+                                tahap = "proses_dna"; // Kunci tahap agar tidak dipanggil berkali-kali
+                                teks.innerHTML = '<i class="fa-solid fa-microchip fa-spin mr-2"></i> Memverifikasi Identitas...';
+                                
+                                // Panggil pengecekan DNA spesifik HANYA pada frame saat dia tersenyum ini
+                                const detDNA = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+                                
+                                if (detDNA && matcher.findBestMatch(detDNA.descriptor).label === localStorage.getItem('username')) {
+                                    tahap = 3; 
+                                    isDeteksiAktif = false; // Hentikan kamera memproses frame baru
+                                    prog.style.width = "100%"; pPersen.innerText = "100%";
+                                    
+                                    // 1. KOMPRESI FOTO PRESENSI
+                                    const targetWidth = 400;
+                                    const scale = targetWidth / video.videoWidth;
+                                    const targetHeight = video.videoHeight * scale;
+                                    
+                                    const tc = document.createElement('canvas'); 
+                                    tc.width = targetWidth; tc.height = targetHeight;
+                                    tc.getContext('2d').drawImage(video, 0, 0, targetWidth, targetHeight);
+                                    const fotoTercapture = tc.toDataURL('image/jpeg', 0.6);
+                                    
+                                    const waktuSkrg = new Date();
+                                    const jamCapture = `${String(waktuSkrg.getHours()).padStart(2,'0')}.${String(waktuSkrg.getMinutes()).padStart(2,'0')}`;
+                                    
+                                    teks.innerHTML = `<i class="fa-solid fa-cloud-upload fa-bounce mr-2"></i> Identitas Cocok! Menyimpan...`;
+                                    teks.className = "text-center text-sm font-bold text-green-600 bg-green-50 py-2.5 rounded-xl border border-green-100 mb-6 fade-in";
+                                    document.getElementById('overlaySukses').classList.remove('hidden');
+                                    document.getElementById('lineScan').style.display = "none";
+                                    
+                                    // 2. KIRIM KE SERVER
+                                    fetch(URL_GAS, { 
+                                        method: 'POST', 
+                                        body: JSON.stringify({ 
+                                            action: 'presensi', 
+                                            foto: fotoTercapture, 
+                                            jenis: localStorage.getItem('jenis_absen_kirim'), 
+                                            username: localStorage.getItem('username'), 
+                                            nama: localStorage.getItem('user_nama'), 
+                                            lokasi: localStorage.getItem('lokasi_pos_kirim') 
+                                        }) 
+                                    }).then(res => res.json()).then(res => {
+                                        if (video.srcObject) { video.srcObject.getTracks().forEach(track => track.stop()); }
+                                        if(res.status === "success") {
+                                            teks.innerHTML = `<i class="fa-solid fa-check-double mr-2"></i> Presensi Berhasil Dicatat Jam ${jamCapture} WIB!`;
+                                            btnSelesai.classList.remove('hidden');
+                                            btnSelesai.classList.add('flex');
+                                        } else {
+                                            alert("❌ Gagal menyimpan absen ke server.");
+                                            kembaliKeDashboard();
+                                        }
+                                    }).catch(() => {
+                                        if (video.srcObject) { video.srcObject.getTracks().forEach(track => track.stop()); }
+                                        alert("❌ Jaringan lambat / Timeout. Cek histori absen Anda.");
+                                        kembaliKeDashboard();
+                                    });
+
+                                } else {
+                                    // Jika wajah yang senyum ternyata bukan wajah pemilik akun
+                                    teks.innerHTML = '<i class="fa-solid fa-user-slash mr-2"></i> Wajah Tidak Dikenali!';
+                                    teks.className = "text-center text-sm font-bold text-red-600 bg-red-50 py-2.5 rounded-xl border border-red-100 mb-6";
+                                    tahap = 1; prog.style.width = "20%"; pPersen.innerText = "20%";
+                                    
+                                    // Beri jeda 2 detik untuk membaca error, lalu mulai deteksi lagi
+                                    setTimeout(() => { 
+                                        teks.innerHTML = '<i class="fa-solid fa-eye mr-2"></i> Silakan Berkedip Ulang'; 
+                                        teks.className = "text-center text-sm font-bold text-blue-600 bg-blue-50 py-2.5 rounded-xl border border-blue-100 mb-4 fade-in";
+                                    }, 2000);
+                                }
+                            }
                         } else {
-                            teks.innerHTML = '<i class="fa-solid fa-user-slash mr-2"></i> Wajah Tidak Dikenali!';
-                            teks.className = "text-center text-sm font-bold text-red-600 bg-red-50 py-2.5 rounded-xl border border-red-100 mb-6";
-                            tahap = 1; prog.style.width = "20%"; pPersen.innerText = "20%";
-                            setTimeout(() => { teks.innerHTML = '<i class="fa-solid fa-eye mr-2"></i> Silakan Berkedip Ulang'; }, 2000);
+                            // Bersihkan garis hijau jika wajah keluar dari frame
+                            canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
                         }
                     }
+                } catch (e) {
+                    console.log("Menunggu frame kamera...");
                 }
-            }, 100);
+
+                // Panggil ulang fungsi ini HANYA jika frame sebelumnya sudah selesai diproses (Jeda 100ms)
+                if (isDeteksiAktif) {
+                    setTimeout(jalankanDeteksi, 100);
+                }
+            }
+
+            // Mulai loop pertama kali
+            jalankanDeteksi();
         });
 
         function kembaliKeDashboard() { window.location.href = URL_DASHBOARD; }
