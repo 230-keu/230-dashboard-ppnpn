@@ -1,14 +1,14 @@
 {
-  "name": "Portal Presensi DJP",
-  "short_name": "Presensi",
-  "description": "Sistem Presensi PPNPN Kanwil DJP Kalimantan Barat",
+  "name": "Portal Presensi PPNPN 230",
+  "short_name": "Portal PPNPN 230",
+  "description": "Sistem PPNPN Kanwil DJP Kalimantan Barat",
   "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#f3f4f6",
   "theme_color": "#2563eb",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
