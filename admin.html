@@ -306,7 +306,7 @@
             .catch(() => alert("Gagal memuat data pegawai!"));
         }
 
-        // --- CORE ENGINE: PROSES HITUNG REKAP & POTONGAN (POST METHOD) ---
+        // --- CORE ENGINE: PROSES HITUNG REKAP & POTONGAN (ANTI-TIMEZONE RESISTANT) ---
         function prosesRekapitulasi() {
             const uname = document.getElementById('rekapNamaSelect').value;
             const dariStr = document.getElementById('rekapDari').value;
@@ -317,7 +317,6 @@
 
             document.getElementById('loadingOverlay').classList.remove('hidden');
 
-            // Gunakan metode POST agar Vercel Proxy tidak menyangkut di Cache URL
             fetch(URL_GAS, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -325,7 +324,6 @@
             })
             .then(res => res.json())
             .then(resData => {
-                // Tangkap jika terjadi error di backend
                 if(resData.status === "error") {
                     document.getElementById('loadingOverlay').classList.add('hidden');
                     alert("Gagal dari server: " + resData.message);
@@ -337,9 +335,8 @@
                 
                 if(dbLogs && Array.isArray(dbLogs)) {
                     dbLogs.forEach(log => { 
-                        let tglKey = log.tanggal;
-                        // Format pengaman jika dari server bocor T (meskipun sudah diamankan di backend)
-                        if(tglKey && tglKey.includes('T')) {
+                        let tglKey = log.tanggal.trim();
+                        if(tglKey.includes('T')) {
                             const d = new Date(tglKey);
                             tglKey = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
                         }
@@ -347,8 +344,12 @@
                     });
                 }
 
-                let dLoop = new Date(dariStr);
-                const dEnd = new Date(sampaiStr);
+                // PERBAIKAN: Gunakan pemisahan array lokal agar kalender tidak bergeser harinya
+                const pDari = dariStr.split("-");
+                const pSampai = sampaiStr.split("-");
+
+                let dLoop = new Date(parseInt(pDari[0]), parseInt(pDari[1]) - 1, parseInt(pDari[2]), 0, 0, 0);
+                const dEnd = new Date(parseInt(pSampai[0]), parseInt(pSampai[1]) - 1, parseInt(pSampai[2]), 23, 59, 59);
                 
                 let htmlRows = '';
                 let totalHari = 0;
@@ -378,7 +379,6 @@
                         let isShiftPagi = false;
                         let pelanggaranHariIni = false;
 
-                        // Kalkulasi Keterlambatan
                         if (masuk !== "") {
                             const jM = parseInt(masuk.split(".")[0]);
                             const mM = parseInt(masuk.split(".")[1] || 0);
@@ -401,7 +401,6 @@
                             potMasuk = telatMnt <= 30 ? 0.25 : 0.50;
                         }
 
-                        // Kalkulasi Pulang Cepat
                         let labelPulang = pulang;
                         if (pulang === "") {
                             pelanggaranHariIni = true;
@@ -468,7 +467,7 @@
             })
             .catch((err) => {
                 document.getElementById('loadingOverlay').classList.add('hidden');
-                alert("Koneksi gagal. Cek kembali apakah kode sudah di-Deploy sebagai Versi Baru.");
+                alert("Penyaringan gagal. Hubungi Admin.");
                 console.error(err);
             });
         }
