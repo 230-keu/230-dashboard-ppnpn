@@ -306,7 +306,7 @@
             .catch(() => alert("Gagal memuat data pegawai!"));
         }
 
-        // --- CORE ENGINE: PROSES HITUNG REKAP & POTONGAN (ANTI-TIMEZONE RESISTANT) ---
+        // --- PROSES TAMPILKAN REKAPITULASI DARI SERVER ---
         function prosesRekapitulasi() {
             const uname = document.getElementById('rekapNamaSelect').value;
             const dariStr = document.getElementById('rekapDari').value;
@@ -320,7 +320,8 @@
             fetch(URL_GAS, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'get_rekap_data', username: uname })
+                // Kirim juga parameter tanggalnya ke server
+                body: JSON.stringify({ action: 'get_rekap_data', username: uname, tglAwal: dariStr, tglAkhir: sampaiStr })
             })
             .then(res => res.json())
             .then(resData => {
@@ -330,121 +331,14 @@
                     return;
                 }
                 
-                const dbLogs = resData.data;
-                const logMap = {};
-                
-                if(dbLogs && Array.isArray(dbLogs)) {
-                    dbLogs.forEach(log => { 
-                        let tglKey = log.tanggal.trim();
-                        if(tglKey.includes('T')) {
-                            const d = new Date(tglKey);
-                            tglKey = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
-                        }
-                        logMap[tglKey] = log; 
-                    });
-                }
-
-                // PERBAIKAN: Gunakan pemisahan array lokal agar kalender tidak bergeser harinya
-                const pDari = dariStr.split("-");
-                const pSampai = sampaiStr.split("-");
-
-                let dLoop = new Date(parseInt(pDari[0]), parseInt(pDari[1]) - 1, parseInt(pDari[2]), 0, 0, 0);
-                const dEnd = new Date(parseInt(pSampai[0]), parseInt(pSampai[1]) - 1, parseInt(pSampai[2]), 23, 59, 59);
-                
                 let htmlRows = '';
-                let totalHari = 0;
-                let hariHadir = 0;
-                let hariSanksi = 0;
-                let totalPotonganAkumulasi = 0;
-
-                while (dLoop <= dEnd) {
-                    totalHari++;
-                    const day = String(dLoop.getDate()).padStart(2, '0');
-                    const month = String(dLoop.getMonth() + 1).padStart(2, '0');
-                    const year = dLoop.getFullYear();
-                    const keyTgl = `${day}-${month}-${year}`;
-
-                    const tglVisual = dLoop.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-
-                    if (logMap[keyTgl]) {
-                        hariHadir++;
-                        const record = logMap[keyTgl];
-                        const masuk = record.masuk || "";
-                        const pulang = record.pulang || "";
-                        
-                        let telatMnt = 0;
-                        let pglCepatMnt = 0;
-                        let potMasuk = 0;
-                        let potPulang = 0;
-                        let isShiftPagi = false;
-                        let pelanggaranHariIni = false;
-
-                        if (masuk !== "") {
-                            const jM = parseInt(masuk.split(".")[0]);
-                            const mM = parseInt(masuk.split(".")[1] || 0);
-                            
-                            if (jM >= 4 && jM < 15) { 
-                                isShiftPagi = true;
-                                const waktuAbsen = jM * 60 + mM;
-                                const targetAbsen = 7 * 60;
-                                if (waktuAbsen > targetAbsen) telatMnt = waktuAbsen - targetAbsen;
-                            } else { 
-                                let waktuAbsen = jM * 60 + mM;
-                                if (jM < 4) waktuAbsen += 24 * 60; 
-                                const targetAbsen = 19 * 60;
-                                if (waktuAbsen > targetAbsen) telatMnt = waktuAbsen - targetAbsen;
-                            }
-                        }
-
-                        if (telatMnt > 0) {
-                            pelanggaranHariIni = true;
-                            potMasuk = telatMnt <= 30 ? 0.25 : 0.50;
-                        }
-
-                        let labelPulang = pulang;
-                        if (pulang === "") {
-                            pelanggaranHariIni = true;
-                            potPulang = 0.25; 
-                            labelPulang = '<span class="text-red-500 font-bold">Lupa Absen</span>';
-                        } else {
-                            const jK = parseInt(pulang.split(".")[0]);
-                            const mK = parseInt(pulang.split(".")[1] || 0);
-
-                            if (isShiftPagi) { 
-                                if (jK >= 4 && jK < 19) pglCepatMnt = (19 * 60) - (jK * 60 + mK);
-                            } else { 
-                                if (jK >= 15) pglCepatMnt = (24 * 60 - (jK * 60 + mK)) + (7 * 60);
-                                else if (jK < 7) pglCepatMnt = (7 * 60) - (jK * 60 + mK);
-                            }
-                        }
-
-                        if (pglCepatMnt > 0) {
-                            pelanggaranHariIni = true;
-                            potPulang = 0.25;
-                        }
-
-                        if (pelanggaranHariIni) hariSanksi++;
-                        const potTotalHariIni = potMasuk + potPulang;
-                        totalPotonganAkumulasi += potTotalHariIni;
-
-                        htmlRows += `
-                            <tr class="hover:bg-slate-50 transition-colors">
-                                <td class="p-3 font-semibold text-slate-700">${tglVisual}</td>
-                                <td class="p-3 text-center font-mono">${masuk || '--.--'}</td>
-                                <td class="p-3 text-center font-mono">${labelPulang}</td>
-                                <td class="p-3 text-center font-mono ${telatMnt > 0 ? 'text-amber-600 font-bold': 'text-slate-300'}">${telatMnt || '-'}</td>
-                                <td class="p-3 text-center font-mono ${pglCepatMnt > 0 ? 'text-orange-600 font-bold': 'text-slate-300'}">${pglCepatMnt || '-'}</td>
-                                <td class="p-3 text-right font-mono text-slate-500">${potMasuk > 0 ? potMasuk.toFixed(2)+'%' : '-'}</td>
-                                <td class="p-3 text-right font-mono text-slate-500">${potPulang > 0 ? potPulang.toFixed(2)+'%' : '-'}</td>
-                                <td class="p-3 text-right font-mono ${potTotalHariIni > 0 ? 'text-red-600 font-bold bg-red-50/40' : 'text-slate-400'}">${potTotalHariIni > 0 ? potTotalHariIni.toFixed(2)+'%' : '-'}</td>
-                            </tr>`;
-                    } else {
-                        hariSanksi++;
-                        totalPotonganAkumulasi += 3.00; 
-
+                
+                // Server (Backend) sudah menyusun data hari demi hari dengan sempurna
+                resData.data.forEach(r => {
+                    if (r.sts === "Alpha") {
                         htmlRows += `
                             <tr class="bg-rose-50/50 hover:bg-rose-50 text-rose-900 transition-colors">
-                                <td class="p-3 font-semibold">${tglVisual}</td>
+                                <td class="p-3 font-semibold">${r.tgl}</td>
                                 <td class="p-3 text-center font-mono font-bold text-red-500">Mangkir</td>
                                 <td class="p-3 text-center font-mono font-bold text-red-500">Mangkir</td>
                                 <td class="p-3 text-center font-mono">-</td>
@@ -453,22 +347,32 @@
                                 <td class="p-3 text-right font-mono">-</td>
                                 <td class="p-3 text-right font-mono font-extrabold text-red-600 bg-red-100/50">3.00%</td>
                             </tr>`;
+                    } else {
+                        htmlRows += `
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="p-3 font-semibold text-slate-700">${r.tgl}</td>
+                                <td class="p-3 text-center font-mono ${r.msk === 'Lupa Absen' ? 'text-red-500 font-bold' : ''}">${r.msk || '--.--'}</td>
+                                <td class="p-3 text-center font-mono ${r.plg === 'Lupa Absen' ? 'text-red-500 font-bold' : ''}">${r.plg || '--.--'}</td>
+                                <td class="p-3 text-center font-mono ${r.tlt > 0 ? 'text-amber-600 font-bold': 'text-slate-300'}">${r.tlt || '-'}</td>
+                                <td class="p-3 text-center font-mono ${r.cpt > 0 ? 'text-orange-600 font-bold': 'text-slate-300'}">${r.cpt || '-'}</td>
+                                <td class="p-3 text-right font-mono text-slate-500">${r.pm > 0 ? r.pm.toFixed(2)+'%' : '-'}</td>
+                                <td class="p-3 text-right font-mono text-slate-500">${r.pp > 0 ? r.pp.toFixed(2)+'%' : '-'}</td>
+                                <td class="p-3 text-right font-mono ${r.pt > 0 ? 'text-red-600 font-bold bg-red-50/40' : 'text-slate-400'}">${r.pt > 0 ? r.pt.toFixed(2)+'%' : '-'}</td>
+                            </tr>`;
                     }
-                    dLoop.setDate(dLoop.getDate() + 1);
-                }
+                });
 
                 document.getElementById('tabelRekapBody').innerHTML = htmlRows;
-                document.getElementById('statTotalHari').innerText = totalHari + " Hari";
-                document.getElementById('statHariHadir').innerText = hariHadir + " Hari";
-                document.getElementById('statHariSanksi').innerText = hariSanksi + " Hari";
-                document.getElementById('statTotalPotongan').innerText = totalPotonganAkumulasi.toFixed(2) + "%";
+                document.getElementById('statTotalHari').innerText = resData.sum.tHari + " Hari";
+                document.getElementById('statHariHadir').innerText = resData.sum.hHadir + " Hari";
+                document.getElementById('statHariSanksi').innerText = resData.sum.hSanksi + " Hari";
+                document.getElementById('statTotalPotongan').innerText = resData.sum.tPot.toFixed(2) + "%";
 
                 document.getElementById('loadingOverlay').classList.add('hidden');
             })
             .catch((err) => {
                 document.getElementById('loadingOverlay').classList.add('hidden');
-                alert("Penyaringan gagal. Hubungi Admin.");
-                console.error(err);
+                alert("Gagal koneksi. Pastikan kode sudah di-Deploy sebagai Versi Baru.");
             });
         }
 
