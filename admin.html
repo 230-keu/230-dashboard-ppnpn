@@ -317,15 +317,24 @@
 
             document.getElementById('loadingOverlay').classList.remove('hidden');
 
-            // Tarik data absen mentah dari server
             fetch(URL_GAS + '?action=get_rekap_data&username=' + encodeURIComponent(uname))
             .then(res => res.json())
             .then(dbLogs => {
-                // Konversi data array ke map key-value [tanggal] untuk efisiensi
                 const logMap = {};
-                dbLogs.forEach(log => { logMap[log.tanggal] = log; });
+                
+                // PENGAMANAN FORMAT TANGGAL FRONTEND
+                if(dbLogs && Array.isArray(dbLogs)) {
+                    dbLogs.forEach(log => { 
+                        let tglKey = log.tanggal;
+                        // Jika server secara tidak sengaja masih meloloskan format waktu mesin (T)
+                        if(tglKey && tglKey.includes('T')) {
+                            const d = new Date(tglKey);
+                            tglKey = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+                        }
+                        logMap[tglKey] = log; 
+                    });
+                }
 
-                // Loop rentang kalender hari demi hari
                 let dLoop = new Date(dariStr);
                 const dEnd = new Date(sampaiStr);
                 
@@ -337,17 +346,14 @@
 
                 while (dLoop <= dEnd) {
                     totalHari++;
-                    // Format pencocokan tanggal ke dd-MM-yyyy
                     const day = String(dLoop.getDate()).padStart(2, '0');
                     const month = String(dLoop.getMonth() + 1).padStart(2, '0');
                     const year = dLoop.getFullYear();
                     const keyTgl = `${day}-${month}-${year}`;
 
-                    // Buat tanggal visual Indonesia
                     const tglVisual = dLoop.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 
                     if (logMap[keyTgl]) {
-                        // --- PEGAWAI HADIR ---
                         hariHadir++;
                         const record = logMap[keyTgl];
                         const masuk = record.masuk || "";
@@ -360,50 +366,44 @@
                         let isShiftPagi = false;
                         let pelanggaranHariIni = false;
 
-                        // 1. Kalkulasi Keterlambatan
+                        // Kalkulasi Keterlambatan
                         if (masuk !== "") {
                             const jM = parseInt(masuk.split(".")[0]);
                             const mM = parseInt(masuk.split(".")[1] || 0);
                             
-                            if (jM >= 4 && jM < 15) { // Shift Pagi (07.00)
+                            if (jM >= 4 && jM < 15) { 
                                 isShiftPagi = true;
                                 const waktuAbsen = jM * 60 + mM;
                                 const targetAbsen = 7 * 60;
                                 if (waktuAbsen > targetAbsen) telatMnt = waktuAbsen - targetAbsen;
-                            } else { // Shift Malam (19.00)
+                            } else { 
                                 let waktuAbsen = jM * 60 + mM;
-                                if (jM < 4) waktuAbsen += 24 * 60; // Kompensasi lewat tengah malam
+                                if (jM < 4) waktuAbsen += 24 * 60; 
                                 const targetAbsen = 19 * 60;
                                 if (waktuAbsen > targetAbsen) telatMnt = waktuAbsen - targetAbsen;
                             }
                         }
 
-                        // Aturan Potongan Masuk
                         if (telatMnt > 0) {
                             pelanggaranHariIni = true;
                             potMasuk = telatMnt <= 30 ? 0.25 : 0.50;
                         }
 
-                        // 2. Kalkulasi Pulang Cepat / Lupa Absen Pulang
+                        // Kalkulasi Pulang Cepat
                         let labelPulang = pulang;
                         if (pulang === "") {
                             pelanggaranHariIni = true;
-                            potPulang = 0.25; // Lupa absen pulang potongan 0.25%
+                            potPulang = 0.25; 
                             labelPulang = '<span class="text-red-500 font-bold">Lupa Absen</span>';
                         } else {
                             const jK = parseInt(pulang.split(".")[0]);
                             const mK = parseInt(pulang.split(".")[1] || 0);
 
-                            if (isShiftPagi) { // Target Pulang Shift Pagi (19.00)
-                                if (jK >= 4 && jK < 19) {
-                                    pglCepatMnt = (19 * 60) - (jK * 60 + mK);
-                                }
-                            } else { // Target Pulang Shift Malam (07.00 pagi esoknya)
-                                if (jK >= 15) { // Pulang sebelum tengah malam
-                                    pglCepatMnt = (24 * 60 - (jK * 60 + mK)) + (7 * 60);
-                                } else if (jK < 7) { // Pulang setelah tengah malam sebelum jam 7
-                                    pglCepatMnt = (7 * 60) - (jK * 60 + mK);
-                                }
+                            if (isShiftPagi) { 
+                                if (jK >= 4 && jK < 19) pglCepatMnt = (19 * 60) - (jK * 60 + mK);
+                            } else { 
+                                if (jK >= 15) pglCepatMnt = (24 * 60 - (jK * 60 + mK)) + (7 * 60);
+                                else if (jK < 7) pglCepatMnt = (7 * 60) - (jK * 60 + mK);
                             }
                         }
 
@@ -413,7 +413,6 @@
                         }
 
                         if (pelanggaranHariIni) hariSanksi++;
-                        
                         const potTotalHariIni = potMasuk + potPulang;
                         totalPotonganAkumulasi += potTotalHariIni;
 
@@ -429,9 +428,8 @@
                                 <td class="p-3 text-right font-mono ${potTotalHariIni > 0 ? 'text-red-600 font-bold bg-red-50/40' : 'text-slate-400'}">${potTotalHariIni > 0 ? potTotalHariIni.toFixed(2)+'%' : '-'}</td>
                             </tr>`;
                     } else {
-                        // --- PEGAWAI TIDAK HADIR (ALPHA) ---
                         hariSanksi++;
-                        totalPotonganAkumulasi += 3.00; // Sanksi Alpha 3%
+                        totalPotonganAkumulasi += 3.00; 
 
                         htmlRows += `
                             <tr class="bg-rose-50/50 hover:bg-rose-50 text-rose-900 transition-colors">
@@ -445,12 +443,9 @@
                                 <td class="p-3 text-right font-mono font-extrabold text-red-600 bg-red-100/50">3.00%</td>
                             </tr>`;
                     }
-
-                    // Lompat ke hari berikutnya
                     dLoop.setDate(dLoop.getDate() + 1);
                 }
 
-                // Inject Data ke Dashboard Rekap
                 document.getElementById('tabelRekapBody').innerHTML = htmlRows;
                 document.getElementById('statTotalHari').innerText = totalHari + " Hari";
                 document.getElementById('statHariHadir').innerText = hariHadir + " Hari";
@@ -461,7 +456,7 @@
             })
             .catch(() => {
                 document.getElementById('loadingOverlay').classList.add('hidden');
-                alert("Gagal memproses data kalkulasi rekap presensi!");
+                alert("Gagal memproses data kalkulasi rekap presensi. Pastikan Apps Script sudah di-Deploy sebagai versi baru!");
             });
         }
 
