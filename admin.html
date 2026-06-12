@@ -4,10 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Panel Kendali Admin - Portal Presensi</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2563eb">
-    <link rel="apple-touch-icon" href="icon-512.png">
-
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -56,6 +53,9 @@
             </button>
             <button onclick="bukaTab('tabLokasi', this)" class="tab-btn px-4 md:px-6 py-3 text-slate-500 font-semibold text-sm transition-all whitespace-nowrap rounded-t-lg">
                 <i class="fa-solid fa-map-location-dot mr-2"></i>Pos Jaga (GPS)
+            </button>
+            <button onclick="bukaTab('tabRekap', this)" class="tab-btn px-4 md:px-6 py-3 text-slate-500 font-semibold text-sm transition-all whitespace-nowrap rounded-t-lg">
+                <i class="fa-solid fa-calculator mr-2"></i>Rekap Presensi
             </button>
         </div>
 
@@ -116,6 +116,72 @@
                 </table>
             </div>
         </div>
+
+        <div id="tabRekap" class="tab-content fade-in hidden">
+            <div class="bg-emerald-50/60 p-5 rounded-2xl border border-emerald-100 mb-6 shadow-sm">
+                <h3 class="text-sm font-bold text-emerald-800 mb-4"><i class="fa-solid fa-filter mr-1"></i> Parameter Pencarian Rekapitulasi</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
+                    <div>
+                        <label class="block text-xs font-semibold text-emerald-700 mb-1.5">Nama Pegawai PPNPN</label>
+                        <select id="rekapNamaSelect" class="w-full px-4 py-2.5 rounded-xl border border-emerald-200 bg-white focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-medium text-slate-700 shadow-sm">
+                            <option value="">-- Muat Pegawai... --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-emerald-700 mb-1.5">Tanggal Dari</label>
+                        <input type="date" id="rekapDari" class="w-full px-4 py-2.5 rounded-xl border border-emerald-200 bg-white focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-medium text-slate-700 shadow-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-emerald-700 mb-1.5">Tanggal Sampai</label>
+                        <input type="date" id="rekapSampai" class="w-full px-4 py-2.5 rounded-xl border border-emerald-200 bg-white focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-medium text-slate-700 shadow-sm">
+                    </div>
+                    <div>
+                        <button onclick="prosesRekapitulasi()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl shadow-md transition-all active:scale-95 text-sm flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-gears"></i> Proses Rekap
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm text-center">
+                    <p class="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Total Hari Kerja</p>
+                    <p id="statTotalHari" class="text-xl font-bold text-slate-700">0</p>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm text-center">
+                    <p class="text-[10px] uppercase font-bold tracking-wider text-green-500 mb-1">Hari Hadir</p>
+                    <p id="statHariHadir" class="text-xl font-bold text-green-600">0</p>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm text-center">
+                    <p class="text-[10px] uppercase font-bold tracking-wider text-amber-500 mb-1">Pelanggaran (TL/PSW)</p>
+                    <p id="statHariSanksi" class="text-xl font-bold text-amber-600">0</p>
+                </div>
+                <div class="bg-gradient-to-tr from-rose-50 to-red-50 p-4 rounded-2xl border border-red-100 shadow-sm text-center">
+                    <p class="text-[10px] uppercase font-bold tracking-wider text-red-600 mb-1">Total Potongan</p>
+                    <p id="statTotalPotongan" class="text-xl font-extrabold text-red-700">0.00%</p>
+                </div>
+            </div>
+
+            <div class="table-scroll bg-white rounded-2xl border border-slate-200 shadow-sm w-full">
+                <table id="tabelRekap" class="w-full min-w-[850px] text-left border-collapse text-sm whitespace-nowrap">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 uppercase tracking-wider text-[10px] font-bold">
+                            <th class="p-3">Tanggal</th>
+                            <th class="p-3 text-center">Jam Masuk</th>
+                            <th class="p-3 text-center">Jam Pulang</th>
+                            <th class="p-3 text-center text-amber-600">Telat (Mnt)</th>
+                            <th class="p-3 text-center text-orange-600">Pgl Cepat (Mnt)</th>
+                            <th class="p-3 text-right">Pot. Masuk</th>
+                            <th class="p-3 text-right">Pot. Pulang</th>
+                            <th class="p-3 text-right text-red-600 font-extrabold">Pot. Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelRekapBody" class="divide-y divide-slate-100 text-slate-700 font-medium">
+                        <tr><td colspan="8" class="p-8 text-center text-slate-400"><i class="fa-solid fa-calculator text-xl mb-1"></i><br>Silakan tentukan pegawai & rentang tanggal lalu klik Proses.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <div id="areaKamera" class="glass-panel w-full max-w-md rounded-[2rem] shadow-2xl overflow-hidden relative z-20 border border-white/20 fade-in hidden p-4 md:p-6 mx-2">
@@ -152,19 +218,39 @@
             elemen.classList.add('active');
         }
 
-        // --- RENDER TABEL PEGAWAI TERBARU ---
+        // SET DEFAULT TANGGAL REKAP (Dari 16 Bulan Lalu s.d 15 Bulan Ini)
+        function setFormulasTanggalBaku() {
+            const hariIni = new Date();
+            const bln = hariIni.getMonth();
+            const thn = hariIni.getFullYear();
+            
+            const dariDate = new Date(thn, bln - 1, 16);
+            const sampaiDate = new Date(thn, bln, 15);
+            
+            document.getElementById('rekapDari').value = rakitFormatInputDate(dariDate);
+            document.getElementById('rekapSampai').value = rakitFormatInputDate(sampaiDate);
+        }
+
+        function rakitFormatInputDate(d) {
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        }
+
+        // RENDER TABEL PEGAWAI & ISI DROPDOWN REKAP
         function muatPegawai() {
             fetch(URL_GAS + '?action=get_users')
             .then(res => res.json())
             .then(data => {
                 let html = '';
+                let selectHtml = '<option value="">-- Pilih Nama PPNPN --</option>';
+                
                 data.forEach(user => {
                     if(user.username !== 'admin') {
-                        
-                        // Konfigurasi Badge Status DNA Wajah
+                        // Dropdown filter rekap
+                        selectHtml += `<option value="${user.username}">${user.nama}</option>`;
+
+                        // Baris tabel pegawai
                         let badgeColor = 'bg-slate-100 text-slate-600 border-slate-200';
                         let iconWajah = '<i class="fa-solid fa-circle-minus"></i> Belum';
-                        
                         if(user.status_wajah === 'Disetujui') {
                             badgeColor = 'bg-green-100 text-green-700 border-green-200';
                             iconWajah = '<i class="fa-solid fa-check-circle"></i> Aktif';
@@ -176,30 +262,27 @@
                             iconWajah = '<i class="fa-solid fa-circle-xmark"></i> Ditolak';
                         }
 
-                        // Susun Tombol Aksi Berdasarkan Status
                         let actionButtons = '';
-                        
                         if(user.status_wajah === 'Menunggu') {
                             actionButtons += `
-                                <button onclick="window.open('${user.foto}', '_blank')" class="bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1.5 rounded-lg font-bold text-xs shadow-sm" title="Lihat Foto Selfie Registrasi">
+                                <button onclick="window.open('${user.foto}', '_blank')" class="bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1.5 rounded-lg font-bold text-xs shadow-sm">
                                     <i class="fa-solid fa-image"></i> Cek Foto
                                 </button>
-                                <button onclick="accWajah('${user.username}')" class="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1.5 rounded-lg font-bold text-xs shadow-sm" title="Setujui DNA">
+                                <button onclick="accWajah('${user.username}')" class="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1.5 rounded-lg font-bold text-xs shadow-sm">
                                     <i class="fa-solid fa-check"></i> ACC
                                 </button>
-                                <button onclick="tolakWajah('${user.username}')" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg font-bold text-xs shadow-sm" title="Tolak Pengajuan DNA">
+                                <button onclick="tolakWajah('${user.username}')" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg font-bold text-xs shadow-sm">
                                     <i class="fa-solid fa-xmark"></i> Tolak
                                 </button>
                                 <div class="w-px h-6 bg-slate-200 mx-1"></div>
                             `;
                         }
 
-                        // Tombol Standar (Manual Rekam & Hapus)
                         actionButtons += `
-                            <button onclick="bukaKamera('${user.username}', '${user.nama}')" class="bg-amber-100 hover:bg-amber-200 text-amber-700 px-3 py-1.5 rounded-lg font-bold text-xs transition-colors shadow-sm" title="Rekam Paksa Wajah Manual">
+                            <button onclick="bukaKamera('${user.username}', '${user.nama}')" class="bg-amber-100 hover:bg-amber-200 text-amber-700 px-3 py-1.5 rounded-lg font-bold text-xs shadow-sm">
                                 <i class="fa-solid fa-camera"></i> Rekam Manual
                             </button>
-                            <button onclick="hapusPegawai('${user.username}')" class="bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-600 px-3 py-1.5 rounded-lg font-bold text-xs transition-colors shadow-sm" title="Hapus Data">
+                            <button onclick="hapusPegawai('${user.username}')" class="bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-600 px-3 py-1.5 rounded-lg font-bold text-xs shadow-sm">
                                 <i class="fa-solid fa-trash"></i>
                             </button>
                         `;
@@ -212,41 +295,198 @@
                                     <span class="px-3 py-1 rounded-full text-xs font-bold border ${badgeColor}">${iconWajah}</span>
                                 </td>
                                 <td class="p-3 md:p-4 text-center">
-                                    <div class="flex justify-center items-center gap-2">
-                                        ${actionButtons}
-                                    </div>
+                                    <div class="flex justify-center items-center gap-2">${actionButtons}</div>
                                 </td>
                             </tr>`;
                     }
                 });
                 document.querySelector('#tabelPegawai tbody').innerHTML = html || '<tr><td colspan="4" class="p-8 text-center text-slate-400">Belum ada data pegawai.</td></tr>';
+                document.getElementById('rekapNamaSelect').innerHTML = selectHtml;
             })
-            .catch(() => alert("Gagal memuat data dari server!"));
+            .catch(() => alert("Gagal memuat data pegawai!"));
         }
 
-        // --- FUNGSI ADMIN ACC/TOLAK WAJAH ---
+        // --- CORE ENGINE: PROSES HITUNG REKAP & POTONGAN ---
+        function prosesRekapitulasi() {
+            const uname = document.getElementById('rekapNamaSelect').value;
+            const dariStr = document.getElementById('rekapDari').value;
+            const sampaiStr = document.getElementById('rekapSampai').value;
+
+            if(!uname) return alert("Silakan pilih pegawai PPNPN terlebih dahulu!");
+            if(!dariStr || !sampaiStr) return alert("Rentang tanggal pencarian harus lengkap!");
+
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+
+            // Tarik data absen mentah dari server
+            fetch(URL_GAS + '?action=get_rekap_data&username=' + encodeURIComponent(uname))
+            .then(res => res.json())
+            .then(dbLogs => {
+                // Konversi data array ke map key-value [tanggal] untuk efisiensi
+                const logMap = {};
+                dbLogs.forEach(log => { logMap[log.tanggal] = log; });
+
+                // Loop rentang kalender hari demi hari
+                let dLoop = new Date(dariStr);
+                const dEnd = new Date(sampaiStr);
+                
+                let htmlRows = '';
+                let totalHari = 0;
+                let hariHadir = 0;
+                let hariSanksi = 0;
+                let totalPotonganAkumulasi = 0;
+
+                while (dLoop <= dEnd) {
+                    totalHari++;
+                    // Format pencocokan tanggal ke dd-MM-yyyy
+                    const day = String(dLoop.getDate()).padStart(2, '0');
+                    const month = String(dLoop.getMonth() + 1).padStart(2, '0');
+                    const year = dLoop.getFullYear();
+                    const keyTgl = `${day}-${month}-${year}`;
+
+                    // Buat tanggal visual Indonesia
+                    const tglVisual = dLoop.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+
+                    if (logMap[keyTgl]) {
+                        // --- PEGAWAI HADIR ---
+                        hariHadir++;
+                        const record = logMap[keyTgl];
+                        const masuk = record.masuk || "";
+                        const pulang = record.pulang || "";
+                        
+                        let telatMnt = 0;
+                        let pglCepatMnt = 0;
+                        let potMasuk = 0;
+                        let potPulang = 0;
+                        let isShiftPagi = false;
+                        let pelanggaranHariIni = false;
+
+                        // 1. Kalkulasi Keterlambatan
+                        if (masuk !== "") {
+                            const jM = parseInt(masuk.split(".")[0]);
+                            const mM = parseInt(masuk.split(".")[1] || 0);
+                            
+                            if (jM >= 4 && jM < 15) { // Shift Pagi (07.00)
+                                isShiftPagi = true;
+                                const waktuAbsen = jM * 60 + mM;
+                                const targetAbsen = 7 * 60;
+                                if (waktuAbsen > targetAbsen) telatMnt = waktuAbsen - targetAbsen;
+                            } else { // Shift Malam (19.00)
+                                let waktuAbsen = jM * 60 + mM;
+                                if (jM < 4) waktuAbsen += 24 * 60; // Kompensasi lewat tengah malam
+                                const targetAbsen = 19 * 60;
+                                if (waktuAbsen > targetAbsen) telatMnt = waktuAbsen - targetAbsen;
+                            }
+                        }
+
+                        // Aturan Potongan Masuk
+                        if (telatMnt > 0) {
+                            pelanggaranHariIni = true;
+                            potMasuk = telatMnt <= 30 ? 0.25 : 0.50;
+                        }
+
+                        // 2. Kalkulasi Pulang Cepat / Lupa Absen Pulang
+                        let labelPulang = pulang;
+                        if (pulang === "") {
+                            pelanggaranHariIni = true;
+                            potPulang = 0.25; // Lupa absen pulang potongan 0.25%
+                            labelPulang = '<span class="text-red-500 font-bold">Lupa Absen</span>';
+                        } else {
+                            const jK = parseInt(pulang.split(".")[0]);
+                            const mK = parseInt(pulang.split(".")[1] || 0);
+
+                            if (isShiftPagi) { // Target Pulang Shift Pagi (19.00)
+                                if (jK >= 4 && jK < 19) {
+                                    pglCepatMnt = (19 * 60) - (jK * 60 + mK);
+                                }
+                            } else { // Target Pulang Shift Malam (07.00 pagi esoknya)
+                                if (jK >= 15) { // Pulang sebelum tengah malam
+                                    pglCepatMnt = (24 * 60 - (jK * 60 + mK)) + (7 * 60);
+                                } else if (jK < 7) { // Pulang setelah tengah malam sebelum jam 7
+                                    pglCepatMnt = (7 * 60) - (jK * 60 + mK);
+                                }
+                            }
+                        }
+
+                        if (pglCepatMnt > 0) {
+                            pelanggaranHariIni = true;
+                            potPulang = 0.25;
+                        }
+
+                        if (pelanggaranHariIni) hariSanksi++;
+                        
+                        const potTotalHariIni = potMasuk + potPulang;
+                        totalPotonganAkumulasi += potTotalHariIni;
+
+                        htmlRows += `
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="p-3 font-semibold text-slate-700">${tglVisual}</td>
+                                <td class="p-3 text-center font-mono">${masuk || '--.--'}</td>
+                                <td class="p-3 text-center font-mono">${labelPulang}</td>
+                                <td class="p-3 text-center font-mono ${telatMnt > 0 ? 'text-amber-600 font-bold': 'text-slate-300'}">${telatMnt || '-'}</td>
+                                <td class="p-3 text-center font-mono ${pglCepatMnt > 0 ? 'text-orange-600 font-bold': 'text-slate-300'}">${pglCepatMnt || '-'}</td>
+                                <td class="p-3 text-right font-mono text-slate-500">${potMasuk > 0 ? potMasuk.toFixed(2)+'%' : '-'}</td>
+                                <td class="p-3 text-right font-mono text-slate-500">${potPulang > 0 ? potPulang.toFixed(2)+'%' : '-'}</td>
+                                <td class="p-3 text-right font-mono ${potTotalHariIni > 0 ? 'text-red-600 font-bold bg-red-50/40' : 'text-slate-400'}">${potTotalHariIni > 0 ? potTotalHariIni.toFixed(2)+'%' : '-'}</td>
+                            </tr>`;
+                    } else {
+                        // --- PEGAWAI TIDAK HADIR (ALPHA) ---
+                        hariSanksi++;
+                        totalPotonganAkumulasi += 3.00; // Sanksi Alpha 3%
+
+                        htmlRows += `
+                            <tr class="bg-rose-50/50 hover:bg-rose-50 text-rose-900 transition-colors">
+                                <td class="p-3 font-semibold">${tglVisual}</td>
+                                <td class="p-3 text-center font-mono font-bold text-red-500">Mangkir</td>
+                                <td class="p-3 text-center font-mono font-bold text-red-500">Mangkir</td>
+                                <td class="p-3 text-center font-mono">-</td>
+                                <td class="p-3 text-center font-mono">-</td>
+                                <td class="p-3 text-right font-mono">-</td>
+                                <td class="p-3 text-right font-mono">-</td>
+                                <td class="p-3 text-right font-mono font-extrabold text-red-600 bg-red-100/50">3.00%</td>
+                            </tr>`;
+                    }
+
+                    // Lompat ke hari berikutnya
+                    dLoop.setDate(dLoop.getDate() + 1);
+                }
+
+                // Inject Data ke Dashboard Rekap
+                document.getElementById('tabelRekapBody').innerHTML = htmlRows;
+                document.getElementById('statTotalHari').innerText = totalHari + " Hari";
+                document.getElementById('statHariHadir').innerText = hariHadir + " Hari";
+                document.getElementById('statHariSanksi').innerText = hariSanksi + " Hari";
+                document.getElementById('statTotalPotongan').innerText = totalPotonganAkumulasi.toFixed(2) + "%";
+
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            })
+            .catch(() => {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+                alert("Gagal memproses data kalkulasi rekap presensi!");
+            });
+        }
+
+
+        // --- CODE MANAGEMENT SISTEM AWAL (ADMIN/LOKASI) ---
         function accWajah(username) {
             if(confirm(`Setujui DNA wajah milik @${username}?`)) {
                 document.getElementById('loadingOverlay').classList.remove('hidden');
-                fetch(URL_GAS, { method: 'POST', body: JSON.stringify({ action: 'acc_wajah', username: username }) })
+                fetch(URL_GAS + '?action=acc_wajah', { method: 'POST', body: JSON.stringify({ action: 'acc_wajah', username: username }) })
                 .then(() => { document.getElementById('loadingOverlay').classList.add('hidden'); muatPegawai(); });
             }
         }
-
         function tolakWajah(username) {
             if(confirm(`Tolak pengajuan wajah @${username}? Mereka harus mendaftar ulang.`)) {
                 document.getElementById('loadingOverlay').classList.remove('hidden');
-                fetch(URL_GAS, { method: 'POST', body: JSON.stringify({ action: 'tolak_wajah', username: username }) })
+                fetch(URL_GAS + '?action=tolak_wajah', { method: 'POST', body: JSON.stringify({ action: 'tolak_wajah', username: username }) })
                 .then(() => { document.getElementById('loadingOverlay').classList.add('hidden'); muatPegawai(); });
             }
         }
-
         function tambahPegawai() {
             const usrRaw = document.getElementById('usrBaru').value;
-            const nama = document.getElementById('namaBaru').value.trim();
+            const nama = document.getElementById('namaBaru').value.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
             const pass = document.getElementById('passBaru').value;
             if (/\s/.test(usrRaw)) return alert("Username tidak boleh ada spasi!");
-            const usr = usrRaw.trim();
+            const usr = usrRaw.trim().toLowerCase();
             if(!usr || !nama || !pass) return alert("Semua kolom wajib diisi!");
             
             document.getElementById('loadingOverlay').classList.remove('hidden');
@@ -259,7 +499,6 @@
                 } else { alert("Gagal: " + data.message); }
             });
         }
-
         function hapusPegawai(username) {
             if(confirm("PERINGATAN: Yakin ingin menghapus pegawai @" + username + "?")) {
                 document.getElementById('loadingOverlay').classList.remove('hidden');
@@ -268,8 +507,6 @@
                 });
             }
         }
-
-        // --- FUNGSI LOKASI POS (Sama persis) ---
         function muatPos() {
             fetch(URL_GAS + '?action=get_locations').then(res => res.json()).then(data => {
                 let html = '';
@@ -284,7 +521,6 @@
                 document.querySelector('#tabelPos tbody').innerHTML = html || '<tr><td colspan="4" class="p-8 text-center text-slate-400">Belum ada titik pos jaga.</td></tr>';
             });
         }
-
         function tambahPos() {
             const nama = document.getElementById('namaPos').value.trim(); const lat = document.getElementById('lat').value.trim();
             const lng = document.getElementById('lng').value.trim(); const rad = document.getElementById('rad').value.trim();
@@ -292,38 +528,30 @@
             fetch(URL_GAS, { method: 'POST', body: JSON.stringify({ action: 'add_location', nama_lokasi: nama, latitude: lat, longitude: lng, radius: rad }) })
             .then(() => { muatPos(); document.getElementById('namaPos').value = ''; document.getElementById('lat').value = ''; document.getElementById('lng').value = ''; });
         }
-
         function hapusPos(id) {
             if(confirm("Yakin ingin menghapus pos jaga ini?")) {
                 fetch(URL_GAS, { method: 'POST', body: JSON.stringify({ action: 'delete_location', id: id }) }).then(() => muatPos());
             }
         }
 
-        // --- KAMERA MANUAL ADMIN ---
-        let targetUsr = '';
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
+        // --- SENSOR KAMERA MANUAL ADMIN ---
+        let targetUsr = ''; const video = document.getElementById('video'); const canvas = document.getElementById('canvas');
         let aiDimuat = false; let deteksiInterval;
-
         function bukaKamera(usr, nama) {
             document.getElementById('utamaAdmin').classList.remove('block'); document.getElementById('utamaAdmin').classList.add('hidden');
             document.getElementById('areaKamera').classList.remove('hidden'); document.getElementById('areaKamera').classList.add('block');
             document.getElementById('namaTarget').innerText = nama; targetUsr = usr;
             const status = document.getElementById('statusAI');
-
             if(!aiDimuat) {
                 Promise.all([ faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL), faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL), faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL) ])
                 .then(() => { aiDimuat = true; mulaiStream(); })
-                .catch(() => { status.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-2"></i> Gagal memuat AI.'; });
+                .catch(() => { status.innerHTML = 'Gagal memuat AI.'; });
             } else { mulaiStream(); }
         }
-
         function mulaiStream() {
-            const status = document.getElementById('statusAI');
-            status.innerHTML = '<i class="fa-solid fa-camera mr-2"></i> Kamera Aktif. Arahkan Wajah Target.';
+            document.getElementById('statusAI').innerHTML = '<i class="fa-solid fa-camera mr-2"></i> Kamera Aktif. Arahkan Wajah Target.';
             navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }).then(stream => { video.srcObject = stream; });
         }
-
         video.addEventListener('playing', () => {
             const displaySize = { width: video.videoWidth, height: video.videoHeight }; faceapi.matchDimensions(canvas, displaySize);
             deteksiInterval = setInterval(async () => {
@@ -334,52 +562,26 @@
                     const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);
                     faceapi.draw.drawFaceLandmarks(canvas, faceapi.resizeResults(deteksi, displaySize));
                 } else {
-                    document.getElementById('btnAmbilDNA').style.display = "none";
-                    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+                    document.getElementById('btnAmbilDNA').style.display = "none"; canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
                 }
             }, 300);
         });
-
         async function simpanDNA() {
-            const status = document.getElementById('statusAI');
-            status.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengekstrak DNA...';
-            document.getElementById('btnAmbilDNA').style.display = "none";
-
+            document.getElementById('statusAI').innerHTML = 'Mengekstrak DNA...'; document.getElementById('btnAmbilDNA').style.display = "none";
             const deteksi = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
             if (deteksi) {
-                const descriptorArray = Array.from(deteksi.descriptor);
-                document.getElementById('loadingOverlay').classList.remove('hidden');
-                fetch(URL_GAS, { 
-                    method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: 'simpan_wajah', username: targetUsr, descriptor: JSON.stringify(descriptorArray) }) 
-                }).then(() => { 
-                    document.getElementById('loadingOverlay').classList.add('hidden');
-                    alert("✅ DNA Wajah Berhasil Disimpan Manual!"); 
-                    tutupKamera(); muatPegawai(); 
-                });
-            } else {
-                alert("Wajah tidak terdeteksi jelas!"); 
-                document.getElementById('btnAmbilDNA').style.display = "flex";
-            }
+                const descriptorArray = Array.from(deteksi.descriptor); document.getElementById('loadingOverlay').classList.remove('hidden');
+                fetch(URL_GAS, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'simpan_wajah', username: targetUsr, descriptor: JSON.stringify(descriptorArray) }) })
+                .then(() => { document.getElementById('loadingOverlay').classList.add('hidden'); alert("✅ DNA Wajah Berhasil Disimpan Manual!"); tutupKamera(); muatPegawai(); });
+            } else { alert("Wajah tidak terdeteksi!"); document.getElementById('btnAmbilDNA').style.display = "flex"; }
         }
-
         function tutupKamera() {
-            clearInterval(deteksiInterval);
-            document.getElementById('areaKamera').classList.remove('block'); document.getElementById('areaKamera').classList.add('hidden');
+            clearInterval(deteksiInterval); document.getElementById('areaKamera').classList.remove('block'); document.getElementById('areaKamera').classList.add('hidden');
             document.getElementById('utamaAdmin').classList.remove('hidden'); document.getElementById('utamaAdmin').classList.add('block');
             if(video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
         }
 
-        window.onload = () => { muatPegawai(); muatPos(); };
-    </script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                .then(reg => console.log('Sistem Cache Aktif!', reg.scope))
-                .catch(err => console.log('Cache Gagal:', err));
-            });
-        }
+        window.onload = () => { muatPegawai(); muatPos(); setFormulasTanggalBaku(); };
     </script>
 </body>
 </html>
