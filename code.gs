@@ -1,15 +1,15 @@
+// --- FUNGSI PENYAPU OTOMATIS GLOBAL (Merapikan 9.2 menjadi 09.20) ---
+function formatJam(teks) {
+  if (!teks || teks.toString().trim() === "") return "";
+  var parts = teks.toString().split(".");
+  var j = parts[0].padStart(2, '0');
+  var m = (parts[1] || "00").padEnd(2, '0');
+  return j + "." + m;
+}
+
 function doGet(e) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var action = e.parameter.action;
-  
-  // --- FUNGSI PENYAPU OTOMATIS (Merapikan 9.2 menjadi 09.20) ---
-  function formatJam(teks) {
-    if (!teks || teks.toString().trim() === "") return "";
-    var parts = teks.toString().split(".");
-    var j = parts[0].padStart(2, '0');
-    var m = (parts[1] || "00").padEnd(2, '0');
-    return j + "." + m;
-  }
 
   // 1. DATA PEGAWAI UNTUK ADMIN
   if (action === "get_users") {
@@ -53,8 +53,8 @@ function doGet(e) {
     }
     return ContentService.createTextOutput(JSON.stringify({status: "error", message: "User tidak ditemukan!"})).setMimeType(ContentService.MimeType.JSON);
   }
-  
-  // --- KALKULASI TL & PSW OTOMATIS ---
+
+  // --- KALKULASI RIWAYAT LOG USER (DASHBOARD MOBIL) ---
   else if (action === "get_riwayat_user") {
     var uname = e.parameter.username;
     var sheet = ss.getSheetByName("DataPresensi");
@@ -63,7 +63,6 @@ function doGet(e) {
     
     for (var i = rows.length - 1; i > 0; i--) {
       if (rows[i][1].toString() === uname) {
-        // GUNAKAN PENYAPU OTOMATIS DI SINI
         var masukTxt = rows[i][3] ? formatJam(rows[i][3]) : "";
         var pulangTxt = rows[i][4] ? formatJam(rows[i][4]) : "";
         
@@ -113,7 +112,6 @@ function doGet(e) {
     var nama = e.parameter.nama;
     var uname = e.parameter.username;
     
-    // 1. Cek Status Wajah dari DataSatpam
     var sheetSatpam = ss.getSheetByName("DataSatpam");
     var rowsSatpam = sheetSatpam.getDataRange().getValues();
     var stat_dna = "Belum";
@@ -124,7 +122,6 @@ function doGet(e) {
       }
     }
 
-    // 2. Cek Status Presensi dari DataPresensi
     var sheet = ss.getSheetByName("DataPresensi");
     var rows = sheet.getDataRange().getValues();
     
@@ -132,7 +129,6 @@ function doGet(e) {
     var jam_masuk = "--.-- WIB";
     var jam_keluar = "--.-- WIB";
     var lokasi_pos_masuk = ""; 
-    
     var menit_telat = 0;
     var durasi_jam = 0;
     
@@ -144,28 +140,24 @@ function doGet(e) {
     if (lastRowIdx !== -1) {
       var row = rows[lastRowIdx];
       var nowMs = new Date().getTime(); 
-      
-      // GUNAKAN PENYAPU OTOMATIS
       var wktMasukBersih = formatJam(row[3]);
 
-      // Hitung Menit Terlambat dari Jam Masuk yang Sudah Dibersihkan
       if (wktMasukBersih !== "") {
         var jamM = parseInt(wktMasukBersih.split(".")[0]);
         var mntM = parseInt(wktMasukBersih.split(".")[1]);
         
-        if (jamM >= 4 && jamM < 15) { // Shift Pagi
+        if (jamM >= 4 && jamM < 15) { 
           var batasPagi = 7 * 60;
           var waktuMasuk = jamM * 60 + mntM;
           if (waktuMasuk > batasPagi) menit_telat = waktuMasuk - batasPagi;
-        } else if (jamM >= 15 || jamM < 4) { // Shift Malam
+        } else if (jamM >= 15 || jamM < 4) { 
           var batasMalam = 19 * 60;
           var waktuMasuk = jamM * 60 + mntM;
-          if (jamM < 4) waktuMasuk += 24 * 60; // Koreksi jam 00 - 03 pagi
+          if (jamM < 4) waktuMasuk += 24 * 60; 
           if (waktuMasuk > batasMalam) menit_telat = waktuMasuk - batasMalam;
         }
       }
 
-      // Deteksi Sedang Shift / Selesai
       if (!row[4] || row[4].toString().trim() === "") {
         var msSejakMasuk = nowMs - parseFloat(row[9]);
         var jamSejakMasuk = msSejakMasuk / (1000 * 60 * 60);
@@ -188,15 +180,9 @@ function doGet(e) {
       }
     }
     
-    // Kirim data tambahan ke Frontend
     return ContentService.createTextOutput(JSON.stringify({
-      kode_status: status_kode, 
-      masuk: jam_masuk, 
-      keluar: jam_keluar,
-      lokasi_masuk: lokasi_pos_masuk, 
-      status_dna: stat_dna,
-      telat: menit_telat,     
-      durasi: durasi_jam     
+      kode_status: status_kode, masuk: jam_masuk, keluar: jam_keluar,
+      lokasi_masuk: lokasi_pos_masuk, status_dna: stat_dna, telat: menit_telat, durasi: durasi_jam     
     })).setMimeType(ContentService.MimeType.JSON);
   }
 }
@@ -238,7 +224,6 @@ function doPost(e) {
     }
   }
   
-  // --- MANAJEMEN LOKASI ---
   else if (action === "add_location") {
     var sheet = ss.getSheetByName("DataLokasi");
     sheet.appendRow(["POS" + new Date().getTime(), data.nama_lokasi, data.latitude, data.longitude, data.radius]);
@@ -259,7 +244,6 @@ function doPost(e) {
     }
   }
 
-  // --- REKAM WAJAH MANUAL OLEH ADMIN ---
   else if (action === "simpan_wajah") {
     var sheet = ss.getSheetByName("DataSatpam");
     var rows = sheet.getDataRange().getValues();
@@ -272,12 +256,10 @@ function doPost(e) {
     }
   }
 
-  // --- PENGAJUAN WAJAH MANDIRI OLEH PEGAWAI ---
   else if (action === "ajukan_wajah_mandiri") {
     var sheet = ss.getSheetByName("DataSatpam");
     var rows = sheet.getDataRange().getValues();
     var fotoUrl = "";
-    
     try {
       if (data.foto && data.foto !== "") {
         var base64Data = data.foto.split(",")[1]; 
@@ -301,7 +283,6 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({status: "error", message: "User tidak ditemukan di Database"})).setMimeType(ContentService.MimeType.JSON);
   }
 
-  // --- ADMIN ACC / TOLAK WAJAH ---
   else if (action === "acc_wajah") {
     var sheet = ss.getSheetByName("DataSatpam");
     var rows = sheet.getDataRange().getValues();
@@ -312,6 +293,7 @@ function doPost(e) {
       }
     }
   }
+  
   else if (action === "tolak_wajah") {
     var sheet = ss.getSheetByName("DataSatpam");
     var rows = sheet.getDataRange().getValues();
@@ -325,15 +307,11 @@ function doPost(e) {
     }
   }
 
-  // --- LOGIKA PRESENSI (Penyisipan Petik Tunggal) ---
   else if (action === "presensi") {
     var sheet = ss.getSheetByName("DataPresensi");
     var now = new Date();
     var tanggal_wib = Utilities.formatDate(now, "GMT+7", "dd-MM-yyyy");
-    
-    // PERBAIKAN: Menambahkan petik tunggal agar tidak diubah jadi angka 9.2 oleh Google Sheets
-    var jam_wib = "'" + Utilities.formatDate(now, "GMT+7", "HH.mm");
-    
+    var jam_wib = "'" + Utilities.formatDate(now, "GMT+7", "HH.mm"); // Trik petik tunggal anti 9.2 bug
     var time_milidetik = now.getTime();
     
     var fotoUrl = "";
@@ -369,5 +347,41 @@ function doPost(e) {
       }
     }
     return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // --- FITUR BARU: MENGAMBIL REKAP VIA POST AGAR 100% AMAN DARI CACHE ---
+  else if (action === "get_rekap_data") {
+    try {
+      var uname = data.username;
+      var sheet = ss.getSheetByName("DataPresensi");
+      var rows = sheet.getDataRange().getValues();
+      var dataFiltered = [];
+      
+      for (var i = 1; i < rows.length; i++) {
+        if (rows[i][1].toString() === uname) {
+          var masukTxt = rows[i][3] ? formatJam(rows[i][3]) : "";
+          var pulangTxt = rows[i][4] ? formatJam(rows[i][4]) : "";
+          
+          var rawTgl = rows[i][0];
+          var tglStr = "";
+          // Proteksi ganda untuk membaca tanggal baik format text maupun date object
+          if (rawTgl instanceof Date) {
+            tglStr = Utilities.formatDate(rawTgl, "GMT+7", "dd-MM-yyyy");
+          } else {
+            tglStr = rawTgl.toString().trim();
+          }
+
+          dataFiltered.push({
+            tanggal: tglStr,
+            masuk: masukTxt,
+            pulang: pulangTxt,
+            lokasi: rows[i][5] || ""
+          });
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({status: "success", data: dataFiltered})).setMimeType(ContentService.MimeType.JSON);
+    } catch (err) {
+      return ContentService.createTextOutput(JSON.stringify({status: "error", message: err.toString()})).setMimeType(ContentService.MimeType.JSON);
+    }
   }
 }

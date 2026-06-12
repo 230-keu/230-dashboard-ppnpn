@@ -306,7 +306,7 @@
             .catch(() => alert("Gagal memuat data pegawai!"));
         }
 
-        // --- CORE ENGINE: PROSES HITUNG REKAP & POTONGAN ---
+        // --- CORE ENGINE: PROSES HITUNG REKAP & POTONGAN (POST METHOD) ---
         function prosesRekapitulasi() {
             const uname = document.getElementById('rekapNamaSelect').value;
             const dariStr = document.getElementById('rekapDari').value;
@@ -317,16 +317,28 @@
 
             document.getElementById('loadingOverlay').classList.remove('hidden');
 
-            fetch(URL_GAS + '?action=get_rekap_data&username=' + encodeURIComponent(uname))
+            // Gunakan metode POST agar Vercel Proxy tidak menyangkut di Cache URL
+            fetch(URL_GAS, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: 'get_rekap_data', username: uname })
+            })
             .then(res => res.json())
-            .then(dbLogs => {
+            .then(resData => {
+                // Tangkap jika terjadi error di backend
+                if(resData.status === "error") {
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                    alert("Gagal dari server: " + resData.message);
+                    return;
+                }
+                
+                const dbLogs = resData.data;
                 const logMap = {};
                 
-                // PENGAMANAN FORMAT TANGGAL FRONTEND
                 if(dbLogs && Array.isArray(dbLogs)) {
                     dbLogs.forEach(log => { 
                         let tglKey = log.tanggal;
-                        // Jika server secara tidak sengaja masih meloloskan format waktu mesin (T)
+                        // Format pengaman jika dari server bocor T (meskipun sudah diamankan di backend)
                         if(tglKey && tglKey.includes('T')) {
                             const d = new Date(tglKey);
                             tglKey = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
@@ -454,9 +466,10 @@
 
                 document.getElementById('loadingOverlay').classList.add('hidden');
             })
-            .catch(() => {
+            .catch((err) => {
                 document.getElementById('loadingOverlay').classList.add('hidden');
-                alert("Gagal memproses data kalkulasi rekap presensi. Pastikan Apps Script sudah di-Deploy sebagai versi baru!");
+                alert("Koneksi gagal. Cek kembali apakah kode sudah di-Deploy sebagai Versi Baru.");
+                console.error(err);
             });
         }
 
