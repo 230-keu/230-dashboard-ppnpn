@@ -494,8 +494,15 @@
                         let statusColor = 'bg-green-100 text-green-700'; 
                         if (item.status.includes('TL') || item.status.includes('PSW')) statusColor = 'bg-red-100 text-red-700'; 
                         let tglCantik = item.tanggal;
-                        if (tglCantik && tglCantik.toString().includes('T')) {
-                            tglCantik = new Date(tglCantik).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                        if (tglCantik) {
+                            let str = tglCantik.toString();
+                            let parts = str.split('-');
+                            if(parts.length === 3 && parts[0].length === 2) {
+                                tglCantik = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                            } else {
+                                let d = new Date(str);
+                                if(!isNaN(d)) tglCantik = d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                            }
                         }
                         logHtml += `
                             <div class="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center text-xs">
