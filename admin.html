@@ -247,7 +247,7 @@
                     <span class="px-2 py-1 rounded bg-blue-500 text-white">MR: Malam RD Kakanwil</span>
                     <span class="px-2 py-1 rounded bg-orange-500 text-white">PG: Pagi Gudang BDK</span>
                     <span class="px-2 py-1 rounded bg-purple-600 text-white">MG: Malam Gudang BDK</span>
-                    <span class="px-2 py-1 rounded bg-red-100 text-red-700 border border-red-300"><i class="fa-solid fa-xmark text-red-600"></i> Bolos/Mangkir</span>
+                    <span id="legendaBolos" class="px-2 py-1 rounded bg-red-100 text-red-700 border border-red-300 hidden"><i class="fa-solid fa-xmark text-red-600"></i> Bolos/Mangkir</span>
                 </div>
             </div>
         </div>
@@ -851,7 +851,7 @@
                             }
                         }
                         
-                        tr += `<td class="p-0 border-r border-slate-200 text-center relative"><div class="w-full h-full min-h-[22px] flex items-center justify-center text-[10px] font-bold ${color} ${txtColor} m-0 p-0">${shift}${extraMarker}</div></td>`;
+                        tr += `<td class="p-0 border-r border-slate-200 text-center align-middle relative"><div class="w-full h-full min-h-[22px] flex items-center justify-center text-[10px] font-bold leading-none ${color} ${txtColor} m-0 p-0">${shift}${extraMarker}</div></td>`;
                     }
                     tr += `</tr>`;
                     tbody += tr;
@@ -866,6 +866,12 @@
                 </table>`;
                 
                 document.getElementById('wadahJadwal').innerHTML = tableHtml;
+                
+                if(bandingkan) {
+                    document.getElementById('legendaBolos').classList.remove('hidden');
+                } else {
+                    document.getElementById('legendaBolos').classList.add('hidden');
+                }
                 
                 const namaBulan = new Date(y, m-1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
                 document.getElementById('judulJadwalCapture').innerText = `JADWAL SATPAM - ${namaBulan.toUpperCase()}`;
