@@ -731,18 +731,6 @@
             clone.style.zIndex = '-9999';
             clone.classList.remove('hidden');
             
-            // [PENTING] Memaksa seluruh teks di dalam clone memiliki line-height 1 agar html2canvas tidak salah kalkulasi baseline huruf yang menyebabkan melorot ke bawah.
-            const styleFix = document.createElement('style');
-            styleFix.innerHTML = '#areaCaptureJadwal * { line-height: 1 !important; font-family: Arial, sans-serif !important; }';
-            clone.appendChild(styleFix);
-            
-            // Tambahkan padding-bottom paksa ke sel jadwal dan legenda untuk mengangkat teks
-            const cells = clone.querySelectorAll('td, th, span.inline-block');
-            cells.forEach(c => {
-                c.style.paddingBottom = '4px';
-                c.style.paddingTop = '2px';
-            });
-            
             // Buang class 'table-scroll'
             const wadahClone = clone.querySelector('#wadahJadwal');
             if(wadahClone) {
@@ -771,7 +759,23 @@
                     windowWidth: clone.scrollWidth,
                     windowHeight: clone.scrollHeight,
                     scrollY: 0,
-                    scrollX: 0
+                    scrollX: 0,
+                    onclone: function(clonedDoc) {
+                        const style = clonedDoc.createElement('style');
+                        style.innerHTML = `
+                            #areaCaptureJadwal, #areaCaptureJadwal * { 
+                                font-family: Arial, Helvetica, sans-serif !important; 
+                            }
+                            #areaCaptureJadwal td, 
+                            #areaCaptureJadwal th, 
+                            #legendaJadwal span {
+                                padding-bottom: 5px !important;
+                                padding-top: 1px !important;
+                                line-height: 1.1 !important;
+                            }
+                        `;
+                        clonedDoc.head.appendChild(style);
+                    }
                 }).then(canvas => {
                     document.body.removeChild(clone);
                     wadahAsli.scrollLeft = scrollXAsli;
