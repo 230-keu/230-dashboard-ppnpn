@@ -715,30 +715,43 @@
 
         function unduhJadwal() {
             const area = document.getElementById('areaCaptureJadwal');
-            const originalScroll = document.getElementById('wadahJadwal').scrollLeft;
-            document.getElementById('wadahJadwal').scrollLeft = 0; 
+            
+            // Fix terpotong: Matikan scroll dan set lebar menjadi full
+            const wadah = document.getElementById('wadahJadwal');
+            wadah.classList.remove('table-scroll');
+            wadah.style.overflow = 'visible';
+            wadah.style.width = 'max-content';
             
             const btnUnduh = document.getElementById('btnUnduhJadwal');
             const btnHtml = btnUnduh.innerHTML;
             btnUnduh.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Membuat Gambar...';
             btnUnduh.disabled = true;
             
-            html2canvas(area, { scale: 2, backgroundColor: "#ffffff" }).then(canvas => {
-                document.getElementById('wadahJadwal').scrollLeft = originalScroll;
-                
-                const dataUrl = canvas.toDataURL("image/png");
-                const link = document.createElement('a');
-                link.download = `Jadwal_Satpam_${document.getElementById('filterBulanJadwal').value}.png`;
-                link.href = dataUrl;
-                link.click();
-                
-                btnUnduh.innerHTML = btnHtml;
-                btnUnduh.disabled = false;
-            }).catch(err => {
-                alert("Gagal membuat gambar: " + err);
-                btnUnduh.innerHTML = btnHtml;
-                btnUnduh.disabled = false;
-            });
+            // Beri waktu sebentar agar layout rendering selesai merentang
+            setTimeout(() => {
+                html2canvas(area, { scale: 2, backgroundColor: "#ffffff" }).then(canvas => {
+                    // Kembalikan ke bentuk scroll awal
+                    wadah.classList.add('table-scroll');
+                    wadah.style.overflow = '';
+                    wadah.style.width = '100%';
+                    
+                    const dataUrl = canvas.toDataURL("image/png");
+                    const link = document.createElement('a');
+                    link.download = `Jadwal_Satpam_${document.getElementById('filterBulanJadwal').value}.png`;
+                    link.href = dataUrl;
+                    link.click();
+                    
+                    btnUnduh.innerHTML = btnHtml;
+                    btnUnduh.disabled = false;
+                }).catch(err => {
+                    alert("Gagal membuat gambar: " + err);
+                    wadah.classList.add('table-scroll');
+                    wadah.style.overflow = '';
+                    wadah.style.width = '100%';
+                    btnUnduh.innerHTML = btnHtml;
+                    btnUnduh.disabled = false;
+                });
+            }, 300);
         }
 
         function muatJadwal() {
@@ -762,15 +775,15 @@
                 const y = parseInt(parts[0]), m = parseInt(parts[1]);
                 const daysInMonth = new Date(y, m, 0).getDate();
                 
-                let thHtml = `<th class="p-3 sticky left-0 bg-slate-50 z-20 w-8 border-r border-slate-200">No</th><th class="p-3 sticky left-8 bg-slate-50 z-20 min-w-[150px] border-r border-slate-200">Nama</th>`;
+                let thHtml = `<th class="px-2 py-1 sticky left-0 bg-slate-50 z-20 w-6 border-r border-slate-200">No</th><th class="px-2 py-1 sticky left-8 bg-slate-50 z-20 min-w-[130px] border-r border-slate-200">Nama</th>`;
                 let dayNames = `<th class="p-1 border-r border-slate-200 sticky left-0 bg-slate-100 z-20"></th><th class="p-1 border-r border-slate-200 sticky left-8 bg-slate-100 z-20"></th>`;
                 
                 const hariMap = ["MG","SN","SL","RB","KM","JM","SB"];
                 for(let d=1; d<=daysInMonth; d++) {
-                    thHtml += `<th class="p-2 border-r border-slate-200 text-center w-10 text-slate-800">${d}</th>`;
+                    thHtml += `<th class="p-1 border-r border-slate-200 text-center w-8 text-slate-800 text-[10px]">${d}</th>`;
                     let hName = hariMap[new Date(y, m-1, d).getDay()];
                     let colClass = (hName==="MG"||hName==="SB") ? "text-red-500" : "text-slate-600";
-                    dayNames += `<th class="p-1 border-r border-slate-200 text-center text-[10px] ${colClass}">${hName}</th>`;
+                    dayNames += `<th class="px-1 py-0.5 border-r border-slate-200 text-center text-[9px] ${colClass}">${hName}</th>`;
                 }
                 
                 let tbody = '';
@@ -779,12 +792,12 @@
                 data.jadwal.forEach((row, i) => {
                     if (row.tim && row.tim !== currentTim) {
                         currentTim = row.tim;
-                        tbody += `<tr class="bg-blue-50/30"><td colspan="${daysInMonth + 2}" class="p-2 text-xs font-bold text-blue-800 border-b border-slate-200">${currentTim}</td></tr>`;
+                        tbody += `<tr class="bg-blue-50/30"><td colspan="${daysInMonth + 2}" class="px-2 py-1 text-[10px] font-bold text-blue-800 border-b border-slate-200">${currentTim}</td></tr>`;
                     }
                     
                     let tr = `<tr class="border-b border-slate-100 hover:bg-slate-50">
-                        <td class="p-2 text-xs text-center sticky left-0 bg-white z-10 border-r border-slate-200">${i+1}</td>
-                        <td class="p-2 text-xs font-bold text-slate-700 sticky left-8 bg-white z-10 border-r border-slate-200 uppercase">${row.nama}</td>`;
+                        <td class="px-2 py-1 text-[10px] text-center sticky left-0 bg-white z-10 border-r border-slate-200">${i+1}</td>
+                        <td class="px-2 py-1 text-[10px] font-bold text-slate-700 sticky left-8 bg-white z-10 border-r border-slate-200 uppercase truncate max-w-[130px]">${row.nama}</td>`;
                         
                     for(let d=1; d<=daysInMonth; d++) {
                         let shift = row.shifts[d] ? row.shifts[d].toUpperCase() : "";
@@ -811,7 +824,7 @@
                             }
                         }
                         
-                        tr += `<td class="p-0 border-r border-slate-200 text-center relative"><div class="w-full h-full min-h-[35px] flex items-center justify-center text-[10px] font-bold ${color} ${txtColor} m-0 p-1">${shift}${extraMarker}</div></td>`;
+                        tr += `<td class="p-0 border-r border-slate-200 text-center relative"><div class="w-full h-full min-h-[22px] flex items-center justify-center text-[10px] font-bold ${color} ${txtColor} m-0 p-0">${shift}${extraMarker}</div></td>`;
                     }
                     tr += `</tr>`;
                     tbody += tr;
