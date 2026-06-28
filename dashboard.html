@@ -82,14 +82,10 @@
             </button>
 
             <!-- WIDGET CUTI -->
-            <div class="grid grid-cols-2 gap-3 mt-5">
+            <div class="mt-5">
                 <div class="bg-blue-50 p-3 rounded-2xl border border-blue-100 shadow-sm text-center">
-                    <p class="text-[10px] uppercase font-bold tracking-wider text-blue-500 mb-1">Sisa Tahunan</p>
-                    <p id="sisaCutiTahunan" class="text-lg font-bold text-blue-700">--</p>
-                </div>
-                <div class="bg-emerald-50 p-3 rounded-2xl border border-emerald-100 shadow-sm text-center">
-                    <p class="text-[10px] uppercase font-bold tracking-wider text-emerald-500 mb-1">Sisa Sakit</p>
-                    <p id="sisaCutiSakit" class="text-lg font-bold text-emerald-700">--</p>
+                    <p class="text-[10px] uppercase font-bold tracking-wider text-blue-500 mb-1">Sisa Cuti Tahunan</p>
+                    <p id="sisaCutiTahunan" class="text-xl font-bold text-blue-700">--</p>
                 </div>
             </div>
             <button onclick="bukaModalCuti()" class="w-full mt-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-3 px-4 rounded-2xl shadow-sm transition-all flex items-center justify-center gap-2 text-sm active:scale-95">
@@ -154,8 +150,6 @@
                         <select id="jenisCuti" onchange="cekLampiranCuti()" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-400 outline-none text-sm transition-all">
                             <option value="Cuti Tahunan">Cuti Tahunan</option>
                             <option value="Cuti Sakit">Cuti Sakit</option>
-                            <option value="Cuti Alasan Penting">Cuti Alasan Penting</option>
-                            <option value="Cuti Melahirkan">Cuti Melahirkan</option>
                         </select>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
@@ -526,7 +520,6 @@
             }).then(res => res.json()).then(data => {
                 if(data.status === "success") {
                     document.getElementById('sisaCutiTahunan').innerText = data.sisa_tahunan + " Hari";
-                    document.getElementById('sisaCutiSakit').innerText = data.sisa_sakit + " Hari";
                     
                     let html = "";
                     if(data.riwayat.length === 0) { html = '<div class="text-center text-slate-400 py-8 text-xs">Belum ada pengajuan cuti.</div>'; }

@@ -220,10 +220,6 @@
                     <input type="number" id="editJatahTahunan" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:border-blue-400 outline-none text-sm">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Jatah Cuti Sakit (Hari)</label>
-                    <input type="number" id="editJatahSakit" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:border-blue-400 outline-none text-sm">
-                </div>
-                <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Periode Aktif (Cth: Jan - Des 2024)</label>
                     <input type="text" id="editPeriode" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:border-blue-400 outline-none text-sm">
                 </div>
@@ -347,7 +343,7 @@
                         }
 
                         actionButtons += `
-                            <button onclick="bukaEditJatah('${user.username}', '${user.jatah_tahunan}', '${user.jatah_sakit}', '${user.periode}')" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded-lg font-bold text-xs shadow-sm" title="Edit Jatah Cuti">
+                            <button onclick="bukaEditJatah('${user.username}', '${user.jatah_tahunan}', '${user.periode}')" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded-lg font-bold text-xs shadow-sm" title="Edit Jatah Cuti">
                                 <i class="fa-solid fa-pen"></i> Jatah
                             </button>
                             <button onclick="bukaKamera('${user.username}', '${user.nama}')" class="bg-amber-100 hover:bg-amber-200 text-amber-700 px-3 py-1.5 rounded-lg font-bold text-xs shadow-sm">
@@ -417,6 +413,24 @@
                                 <td class="p-3 text-right font-mono">-</td>
                                 <td class="p-3 text-right font-mono">-</td>
                                 <td class="p-3 text-right font-mono font-extrabold text-red-600 bg-red-100/50">3.00%</td>
+                            </tr>`;
+                    } else if (r.sts === "Libur") {
+                        htmlRows += `
+                            <tr class="bg-slate-100/50 hover:bg-slate-100 transition-colors">
+                                <td class="p-3 font-semibold text-slate-700">${r.tgl}</td>
+                                <td colspan="4" class="p-3 text-center font-semibold text-slate-500">Akhir Pekan</td>
+                                <td class="p-3 text-right font-mono text-slate-400">-</td>
+                                <td class="p-3 text-right font-mono text-slate-400">-</td>
+                                <td class="p-3 text-right font-mono text-slate-400">-</td>
+                            </tr>`;
+                    } else if (r.sts !== "Hadir") {
+                        htmlRows += `
+                            <tr class="bg-blue-50/50 hover:bg-blue-50 transition-colors">
+                                <td class="p-3 font-semibold text-slate-700">${r.tgl}</td>
+                                <td colspan="4" class="p-3 text-center font-bold text-blue-600">${r.sts}</td>
+                                <td class="p-3 text-right font-mono text-slate-400">-</td>
+                                <td class="p-3 text-right font-mono text-slate-400">-</td>
+                                <td class="p-3 text-right font-mono text-slate-400">-</td>
                             </tr>`;
                     } else {
                         htmlRows += `
@@ -616,10 +630,9 @@
             fetch(URL_GAS, { method: 'POST', body: JSON.stringify({ action: 'aksi_cuti', id: parseInt(id), keputusan: kpts, catatan: cttn }) })
             .then(()=> { document.getElementById('loadingOverlay').classList.add('hidden'); muatSemuaCuti(); });
         }
-        function bukaEditJatah(usr, thn, skt, per) {
+        function bukaEditJatah(usr, thn, per) {
             document.getElementById('editUsrJatah').value = usr;
             document.getElementById('editJatahTahunan').value = thn;
-            document.getElementById('editJatahSakit').value = skt;
             document.getElementById('editPeriode').value = per;
             document.getElementById('modalJatah').classList.remove('hidden');
         }
@@ -628,7 +641,7 @@
             document.getElementById('modalJatah').classList.add('hidden');
             fetch(URL_GAS, { method: 'POST', body: JSON.stringify({ 
                 action: 'update_jatah', username: document.getElementById('editUsrJatah').value,
-                tahunan: document.getElementById('editJatahTahunan').value, sakit: document.getElementById('editJatahSakit').value, periode: document.getElementById('editPeriode').value
+                tahunan: document.getElementById('editJatahTahunan').value, periode: document.getElementById('editPeriode').value
             })}).then(()=> { document.getElementById('loadingOverlay').classList.add('hidden'); muatPegawai(); });
         }
 

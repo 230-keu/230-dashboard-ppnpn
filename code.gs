@@ -24,7 +24,6 @@ function doGet(e) {
         status_wajah: statusDNA,
         foto: rows[i][5] || "",
         jatah_tahunan: rows[i][6] !== undefined && rows[i][6] !== "" ? rows[i][6] : 12,
-        jatah_sakit: rows[i][7] !== undefined && rows[i][7] !== "" ? rows[i][7] : 12,
         periode: rows[i][8] || "Jan-Des"
       });
     }
@@ -215,8 +214,8 @@ function doPost(e) {
     for (var i = 1; i < rows.length; i++) {
       if (rows[i][0].toString().toLowerCase() === usr) return ContentService.createTextOutput(JSON.stringify({status: "error", message: "Username terpakai!"})).setMimeType(ContentService.MimeType.JSON);
     }
-    // Tambahkan default Jatah (12 Tahunan, 12 Sakit, Periode)
-    sheet.appendRow([usr, data.nama, data.password, "", "Belum", "", 12, 12, "Jan-Des"]);
+    // Tambahkan default Jatah (12 Tahunan, Periode)
+    sheet.appendRow([usr, data.nama, data.password, "", "Belum", "", 12, "", "Jan-Des"]);
     return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
   }
   
@@ -389,18 +388,16 @@ function doPost(e) {
 
   else if (action === "get_cuti_user") {
     var sheetUser = ss.getSheetByName("DataSatpam");
-    var jatahTahunan = 12; var jatahSakit = 12; var periode = "Jan-Des";
+    var jatahTahunan = 12; var periode = "Jan-Des";
     if (sheetUser) {
       var rowsUser = sheetUser.getDataRange().getValues();
       if(rowsUser[0].length < 7 || rowsUser[0][6] !== "Jatah Cuti Tahunan") {
         sheetUser.getRange(1, 7).setValue("Jatah Cuti Tahunan");
-        sheetUser.getRange(1, 8).setValue("Jatah Cuti Sakit");
         sheetUser.getRange(1, 9).setValue("Periode Cuti");
       }
       for (var i = 1; i < rowsUser.length; i++) {
         if (rowsUser[i][0].toString() === data.username) {
           jatahTahunan = rowsUser[i][6] !== undefined && rowsUser[i][6] !== "" ? parseInt(rowsUser[i][6]) : 12;
-          jatahSakit = rowsUser[i][7] !== undefined && rowsUser[i][7] !== "" ? parseInt(rowsUser[i][7]) : 12;
           periode = rowsUser[i][8] !== undefined && rowsUser[i][8] !== "" ? rowsUser[i][8] : "Jan-Des";
           break;
         }
@@ -410,7 +407,6 @@ function doPost(e) {
     var sheetCuti = ss.getSheetByName("DataCuti");
     var riwayat = [];
     var terpakaiTahunan = 0;
-    var terpakaiSakit = 0;
     
     if (sheetCuti) {
       var rows = sheetCuti.getDataRange().getValues();
@@ -422,14 +418,12 @@ function doPost(e) {
           });
           if (rows[i][9] === "Disetujui") {
             if (rows[i][3] === "Cuti Tahunan") terpakaiTahunan += parseInt(rows[i][6] || 0);
-            if (rows[i][3] === "Cuti Sakit") terpakaiSakit += parseInt(rows[i][6] || 0);
           }
         }
       }
     }
     return ContentService.createTextOutput(JSON.stringify({
-      status: "success", riwayat: riwayat, jatah_tahunan: jatahTahunan, sisa_tahunan: jatahTahunan - terpakaiTahunan,
-      jatah_sakit: jatahSakit, sisa_sakit: jatahSakit - terpakaiSakit, periode: periode
+      status: "success", riwayat: riwayat, jatah_tahunan: jatahTahunan, sisa_tahunan: jatahTahunan - terpakaiTahunan, periode: periode
     })).setMimeType(ContentService.MimeType.JSON);
   }
 
@@ -464,13 +458,11 @@ function doPost(e) {
     var rows = sheet.getDataRange().getValues();
     if(rows[0].length < 7 || rows[0][6] !== "Jatah Cuti Tahunan") {
       sheet.getRange(1, 7).setValue("Jatah Cuti Tahunan");
-      sheet.getRange(1, 8).setValue("Jatah Cuti Sakit");
       sheet.getRange(1, 9).setValue("Periode Cuti");
     }
     for (var i = 1; i < rows.length; i++) {
       if (rows[i][0].toString() === data.username) {
         sheet.getRange(i + 1, 7).setValue(data.tahunan);
-        sheet.getRange(i + 1, 8).setValue(data.sakit);
         sheet.getRange(i + 1, 9).setValue(data.periode);
         return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
       }
