@@ -834,7 +834,7 @@
                         if(shift==="P") { color="bg-red-500"; txtColor="text-white"; }
                         else if(shift==="M") { color="bg-slate-400"; txtColor="text-white"; }
                         else if(shift==="PS") { color="bg-fuchsia-500"; txtColor="text-white"; }
-                        else if(shift==="MS") { color="bg-slate-100 border border-slate-300"; txtColor="text-slate-700"; }
+                        else if(shift==="MS") { color="bg-slate-300"; txtColor="text-slate-800"; }
                         else if(shift==="PR") { color="bg-green-600"; txtColor="text-white"; }
                         else if(shift==="MR") { color="bg-blue-500"; txtColor="text-white"; }
                         else if(shift==="PG") { color="bg-orange-500"; txtColor="text-white"; }
@@ -846,12 +846,12 @@
                             let hasAbsen = data.presensi.find(p => p.tgl === dStr && p.nama.toUpperCase() === row.nama.toUpperCase());
                             if(!hasAbsen) {
                                 extraMarker = `<div class="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[1px]"><i class="fa-solid fa-xmark text-red-600 font-extrabold text-sm drop-shadow-md"></i></div>`;
-                                color = "bg-red-100 border-2 border-red-500";
+                                color = "bg-red-200";
                                 txtColor = "text-red-700 font-bold opacity-30";
                             }
                         }
                         
-                        tr += `<td class="p-0 border-r border-slate-200 text-center align-middle relative"><div class="w-full h-full min-h-[22px] flex items-center justify-center text-[10px] font-bold leading-none ${color} ${txtColor} m-0 p-0">${shift}${extraMarker}</div></td>`;
+                        tr += `<td class="border-r border-slate-200 text-center align-middle relative p-1 text-[10px] font-bold ${color} ${txtColor} leading-tight">${shift}${extraMarker}</td>`;
                     }
                     tr += `</tr>`;
                     tbody += tr;
