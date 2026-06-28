@@ -465,6 +465,50 @@ function doPost(e) {
   }
 
   // --- REKAPITULASI DENGAN INTEGRASI CUTI ---
+  else if (action === "get_jadwal_bulanan") {
+    var sheet = ss.getSheetByName("DataJadwal");
+    if (!sheet) {
+      sheet = ss.insertSheet("DataJadwal");
+      sheet.appendRow(["BulanTahun", "TIM", "Nama", "1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31"]);
+    }
+    var rows = sheet.getDataRange().getValues();
+    var jadwal = [];
+    var blnThn = data.bulanTahun;
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0] && rows[i][0].toString() === blnThn) {
+        var jRow = { tim: rows[i][1], nama: rows[i][2], shifts: {} };
+        for(var d=1; d<=31; d++) {
+          jRow.shifts[d] = rows[i][d+2] ? rows[i][d+2].toString().trim() : "";
+        }
+        jadwal.push(jRow);
+      }
+    }
+    
+    var presensi = [];
+    if(data.bandingkan) {
+      var sheetP = ss.getSheetByName("DataPresensi");
+      var pRows = sheetP ? sheetP.getDataRange().getValues() : [];
+      var mPart = blnThn.split("-")[1];
+      var yPart = blnThn.split("-")[0];
+      var suffix = "-" + mPart + "-" + yPart;
+      
+      for(var i=1; i<pRows.length; i++) {
+        var tglP = pRows[i][0];
+        var tglStr = (tglP instanceof Date) ? Utilities.formatDate(tglP, "GMT+7", "dd-MM-yyyy") : tglP.toString().trim();
+        if(tglStr.endsWith(suffix)) {
+           presensi.push({
+             tgl: tglStr,
+             nama: pRows[i][2] ? pRows[i][2].toString() : "",
+             username: pRows[i][1] ? pRows[i][1].toString() : "",
+             masuk: pRows[i][3] ? true : false
+           });
+        }
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({status: "success", jadwal: jadwal, presensi: presensi})).setMimeType(ContentService.MimeType.JSON);
+  }
+
   else if (action === "get_rekap_data") {
     try {
       var uname = data.username;
@@ -477,6 +521,18 @@ function doPost(e) {
       
       var sheetCuti = ss.getSheetByName("DataCuti");
       var rowsCuti = sheetCuti ? sheetCuti.getDataRange().getValues() : [];
+      
+      var namaSatpam = "";
+      var sheetSatpam = ss.getSheetByName("DataSatpam");
+      if(sheetSatpam) {
+          var sData = sheetSatpam.getDataRange().getValues();
+          for(var i=1; i<sData.length; i++) {
+              if(sData[i][0].toString() === uname) { namaSatpam = sData[i][1].toString().toUpperCase(); break; }
+          }
+      }
+      
+      var sheetJadwal = ss.getSheetByName("DataJadwal");
+      var rowsJadwal = sheetJadwal ? sheetJadwal.getDataRange().getValues() : [];
       
       var cutiDisetujui = []; 
       for(var i = 1; i < rowsCuti.length; i++) {
@@ -495,7 +551,22 @@ function doPost(e) {
       
       for (var d = new Date(tglAwal); d <= tglAkhir; d.setDate(d.getDate() + 1)) {
         var tglStr = Utilities.formatDate(d, "GMT+7", "dd-MM-yyyy");
-        var dayOfWeek = d.getDay(); 
+        var dayOfWeek = d.getDay();
+        var blnThn = Utilities.formatDate(d, "GMT+7", "yyyy-MM");
+        var dayOfMonth = d.getDate();
+        
+        var shiftTerjadwal = null; 
+        var adaJadwalBulanIni = false;
+        
+        for (var j = 1; j < rowsJadwal.length; j++) {
+            if(rowsJadwal[j][0] && rowsJadwal[j][0].toString() === blnThn) {
+                adaJadwalBulanIni = true;
+                if(rowsJadwal[j][2] && rowsJadwal[j][2].toString().toUpperCase() === namaSatpam) {
+                    shiftTerjadwal = rowsJadwal[j][dayOfMonth + 2] ? rowsJadwal[j][dayOfMonth + 2].toString().toUpperCase().trim() : "";
+                    break;
+                }
+            }
+        }
         
         var rowP = null;
         for(var i = rowsPresensi.length - 1; i > 0; i--) {
@@ -527,8 +598,16 @@ function doPost(e) {
            
            if(mTxt) {
               var jM = parseInt(mTxt.split(".")[0]); var mM = parseInt(mTxt.split(".")[1]);
-              var isShiftP = (jM >= 4 && jM < 15);
-              var isShiftM = (jM >= 15 || jM < 4);
+              var isShiftP = false; var isShiftM = false;
+              
+              if (adaJadwalBulanIni && shiftTerjadwal !== null && shiftTerjadwal !== "") {
+                  if (shiftTerjadwal.startsWith("P")) isShiftP = true;
+                  else if (shiftTerjadwal.startsWith("M")) isShiftM = true;
+                  else isShiftP = true; 
+              } else {
+                  isShiftP = (jM >= 4 && jM < 15);
+                  isShiftM = (jM >= 15 || jM < 4);
+              }
               
               if(isShiftP) {
                  var bts = 7*60; var act = jM*60 + mM;
@@ -552,7 +631,13 @@ function doPost(e) {
               var jK = parseInt(pTxt.split(".")[0]); var mK = parseInt(pTxt.split(".")[1]);
               var msTxt = rowP[3] ? formatJam(rowP[3]) : "07.00"; 
               var jsM = parseInt(msTxt.split(".")[0]);
-              var isSP = (jsM >= 4 && jsM < 15);
+              
+              var isSP = false;
+              if (adaJadwalBulanIni && shiftTerjadwal !== null && shiftTerjadwal !== "") {
+                  if (shiftTerjadwal.startsWith("P")) isSP = true;
+              } else {
+                  isSP = (jsM >= 4 && jsM < 15);
+              }
               
               if(isSP) {
                  var btsK = 15*60; var actK = jK*60 + mK;
@@ -577,14 +662,22 @@ function doPost(e) {
            sum.tPot += resRow.pt;
         }
         else {
-           if(dayOfWeek === 0 || dayOfWeek === 6) {
-              if(isShift) {
-                 resRow.sts = "Alpha"; resRow.pt = 3; sum.tHari++; sum.tPot += 3;
-              } else {
-                 resRow.sts = "Libur"; resRow.msk = "-"; resRow.plg = "-";
-              }
+           if (adaJadwalBulanIni) {
+               if (shiftTerjadwal && shiftTerjadwal !== "") {
+                   resRow.sts = "Alpha"; resRow.pt = 3; sum.tHari++; sum.tPot += 3;
+               } else {
+                   resRow.sts = "Libur"; resRow.msk = "-"; resRow.plg = "-";
+               }
            } else {
-              resRow.sts = "Alpha"; resRow.pt = 3; sum.tHari++; sum.tPot += 3;
+               if(dayOfWeek === 0 || dayOfWeek === 6) {
+                  if(isShift) {
+                     resRow.sts = "Alpha"; resRow.pt = 3; sum.tHari++; sum.tPot += 3;
+                  } else {
+                     resRow.sts = "Libur"; resRow.msk = "-"; resRow.plg = "-";
+                  }
+               } else {
+                  resRow.sts = "Alpha"; resRow.pt = 3; sum.tHari++; sum.tPot += 3;
+               }
            }
         }
         hasil.push(resRow);

@@ -60,6 +60,9 @@
             <button onclick="bukaTab('tabCuti', this); muatSemuaCuti();" class="tab-btn px-4 md:px-6 py-3 text-slate-500 font-semibold text-sm transition-all whitespace-nowrap rounded-t-lg">
                 <i class="fa-solid fa-umbrella-beach mr-2"></i>Kelola Cuti
             </button>
+            <button onclick="bukaTab('tabVisualJadwal', this);" class="tab-btn px-4 md:px-6 py-3 text-slate-500 font-semibold text-sm transition-all whitespace-nowrap rounded-t-lg">
+                <i class="fa-solid fa-calendar-days mr-2"></i>Matriks Jadwal
+            </button>
         </div>
 
         <div id="tabPPNPN" class="tab-content fade-in block">
@@ -205,6 +208,39 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100 text-slate-700 font-medium"></tbody>
                 </table>
+            </div>
+        </div>
+
+        <div id="tabVisualJadwal" class="tab-content fade-in hidden">
+            <div class="bg-purple-50/50 p-4 md:p-5 rounded-2xl border border-purple-100 mb-6 shadow-inner flex flex-col md:flex-row gap-4 items-end">
+                <div class="w-full md:w-auto">
+                    <label class="block text-xs font-bold text-purple-800 mb-2">Pilih Bulan & Tahun</label>
+                    <input type="month" id="filterBulanJadwal" class="w-full px-4 py-2.5 rounded-xl border border-purple-200 bg-white focus:ring-2 focus:ring-purple-500 outline-none text-sm shadow-sm font-semibold">
+                </div>
+                <div class="w-full md:w-auto flex items-center mb-1">
+                    <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-700">
+                        <input type="checkbox" id="chkBandingkan" class="w-5 h-5 rounded text-purple-600 focus:ring-purple-500">
+                        Tampilkan Penyandingan Absen Aktual
+                    </label>
+                </div>
+                <button onclick="muatJadwal()" class="w-full md:w-auto bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-all active:scale-95 text-sm flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-table-list"></i> Tampilkan
+                </button>
+            </div>
+            
+            <div id="wadahJadwal" class="table-scroll bg-white rounded-2xl border border-slate-200 shadow-sm w-full p-2 hidden">
+            </div>
+            
+            <div id="legendaJadwal" class="mt-4 flex flex-wrap gap-2 text-[10px] font-semibold hidden">
+                <span class="px-2 py-1 rounded bg-red-500 text-white">P: Pagi Kantor</span>
+                <span class="px-2 py-1 rounded bg-slate-400 text-white">M: Malam Kantor</span>
+                <span class="px-2 py-1 rounded bg-fuchsia-500 text-white">PS: Pagi RD Subarkah</span>
+                <span class="px-2 py-1 rounded bg-slate-100 border border-slate-300 text-slate-700">MS: Malam RD Subarkah</span>
+                <span class="px-2 py-1 rounded bg-green-600 text-white">PR: Pagi RD Kakanwil</span>
+                <span class="px-2 py-1 rounded bg-blue-500 text-white">MR: Malam RD Kakanwil</span>
+                <span class="px-2 py-1 rounded bg-orange-500 text-white">PG: Pagi Gudang BDK</span>
+                <span class="px-2 py-1 rounded bg-purple-600 text-white">MG: Malam Gudang BDK</span>
+                <span class="px-2 py-1 rounded bg-red-100 text-red-700 border border-red-300"><i class="fa-solid fa-xmark text-red-600"></i> Bolos/Mangkir</span>
             </div>
         </div>
     </div>
@@ -667,6 +703,96 @@
                 action: 'update_jatah', username: document.getElementById('editUsrJatah').value,
                 tahunan: document.getElementById('editJatahTahunan').value, periode: perGabung
             })}).then(()=> { document.getElementById('loadingOverlay').classList.add('hidden'); muatPegawai(); });
+        }
+
+        function muatJadwal() {
+            const blnThn = document.getElementById('filterBulanJadwal').value;
+            if(!blnThn) return alert("Pilih bulan & tahun!");
+            const bandingkan = document.getElementById('chkBandingkan').checked;
+            
+            document.getElementById('wadahJadwal').classList.remove('hidden');
+            document.getElementById('wadahJadwal').innerHTML = '<div class="p-8 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><br>Memuat Jadwal...</div>';
+            document.getElementById('legendaJadwal').classList.add('hidden');
+            
+            fetch(URL_GAS, { method: 'POST', body: JSON.stringify({ action: 'get_jadwal_bulanan', bulanTahun: blnThn, bandingkan: bandingkan }) })
+            .then(res => res.json()).then(data => {
+                if(data.status !== "success") return alert("Gagal memuat jadwal!");
+                if(data.jadwal.length === 0) {
+                    document.getElementById('wadahJadwal').innerHTML = '<div class="p-8 text-center text-slate-400">DataJadwal untuk ' + blnThn + ' belum diinput di Google Sheets. Pastikan format kolom A: BulanTahun (contoh 2026-04)</div>';
+                    return;
+                }
+                
+                const parts = blnThn.split("-");
+                const y = parseInt(parts[0]), m = parseInt(parts[1]);
+                const daysInMonth = new Date(y, m, 0).getDate();
+                
+                let thHtml = `<th class="p-3 sticky left-0 bg-slate-50 z-20 w-8 border-r border-slate-200">No</th><th class="p-3 sticky left-8 bg-slate-50 z-20 min-w-[150px] border-r border-slate-200">Nama</th>`;
+                let dayNames = `<th class="p-1 border-r border-slate-200 sticky left-0 bg-slate-100 z-20"></th><th class="p-1 border-r border-slate-200 sticky left-8 bg-slate-100 z-20"></th>`;
+                
+                const hariMap = ["MG","SN","SL","RB","KM","JM","SB"];
+                for(let d=1; d<=daysInMonth; d++) {
+                    thHtml += `<th class="p-2 border-r border-slate-200 text-center w-10 text-slate-800">${d}</th>`;
+                    let hName = hariMap[new Date(y, m-1, d).getDay()];
+                    let colClass = (hName==="MG"||hName==="SB") ? "text-red-500" : "text-slate-600";
+                    dayNames += `<th class="p-1 border-r border-slate-200 text-center text-[10px] ${colClass}">${hName}</th>`;
+                }
+                
+                let tbody = '';
+                let currentTim = "";
+                
+                data.jadwal.forEach((row, i) => {
+                    if (row.tim && row.tim !== currentTim) {
+                        currentTim = row.tim;
+                        tbody += `<tr class="bg-blue-50/30"><td colspan="${daysInMonth + 2}" class="p-2 text-xs font-bold text-blue-800 border-b border-slate-200">${currentTim}</td></tr>`;
+                    }
+                    
+                    let tr = `<tr class="border-b border-slate-100 hover:bg-slate-50">
+                        <td class="p-2 text-xs text-center sticky left-0 bg-white z-10 border-r border-slate-200">${i+1}</td>
+                        <td class="p-2 text-xs font-bold text-slate-700 sticky left-8 bg-white z-10 border-r border-slate-200 uppercase">${row.nama}</td>`;
+                        
+                    for(let d=1; d<=daysInMonth; d++) {
+                        let shift = row.shifts[d] ? row.shifts[d].toUpperCase() : "";
+                        let color = "bg-transparent";
+                        let txtColor = "text-slate-800";
+                        
+                        if(shift==="P") { color="bg-red-500"; txtColor="text-white"; }
+                        else if(shift==="M") { color="bg-slate-400"; txtColor="text-white"; }
+                        else if(shift==="PS") { color="bg-fuchsia-500"; txtColor="text-white"; }
+                        else if(shift==="MS") { color="bg-slate-100 border border-slate-300"; txtColor="text-slate-700"; }
+                        else if(shift==="PR") { color="bg-green-600"; txtColor="text-white"; }
+                        else if(shift==="MR") { color="bg-blue-500"; txtColor="text-white"; }
+                        else if(shift==="PG") { color="bg-orange-500"; txtColor="text-white"; }
+                        else if(shift==="MG") { color="bg-purple-600"; txtColor="text-white"; }
+                        
+                        let extraMarker = "";
+                        if(bandingkan && shift) {
+                            let dStr = (d<10 ? "0"+d : d) + "-" + (m<10 ? "0"+m : m) + "-" + y;
+                            let hasAbsen = data.presensi.find(p => p.tgl === dStr && p.nama.toUpperCase() === row.nama.toUpperCase());
+                            if(!hasAbsen) {
+                                extraMarker = `<div class="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[1px]"><i class="fa-solid fa-xmark text-red-600 font-extrabold text-sm drop-shadow-md"></i></div>`;
+                                color = "bg-red-100 border-2 border-red-500";
+                                txtColor = "text-red-700 font-bold opacity-30";
+                            }
+                        }
+                        
+                        tr += `<td class="p-0 border-r border-slate-200 text-center relative"><div class="w-full h-full min-h-[35px] flex items-center justify-center text-[10px] font-bold ${color} ${txtColor} m-0 p-1">${shift}${extraMarker}</div></td>`;
+                    }
+                    tr += `</tr>`;
+                    tbody += tr;
+                });
+                
+                let tableHtml = `<table class="w-full text-left border-collapse border border-slate-200 whitespace-nowrap">
+                    <thead>
+                        <tr class="bg-slate-100 border-b border-slate-200">${dayNames}</tr>
+                        <tr class="bg-slate-50 border-b border-slate-200 text-xs">${thHtml}</tr>
+                    </thead>
+                    <tbody>${tbody}</tbody>
+                </table>`;
+                
+                document.getElementById('wadahJadwal').innerHTML = tableHtml;
+                document.getElementById('legendaJadwal').classList.remove('hidden');
+                document.getElementById('legendaJadwal').classList.add('flex');
+            });
         }
 
         window.onload = () => { muatPegawai(); muatPos(); setFormulasTanggalBaku(); };
