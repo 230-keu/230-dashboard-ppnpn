@@ -719,22 +719,32 @@
             const scrollXAsli = wadahAsli.scrollLeft;
             wadahAsli.scrollLeft = 0;
             
-            // Trik jitu untuk HP/Layar kecil: Clone elemennya lalu direntangkan paksa di background
             const clone = area.cloneNode(true);
+            
+            // Trik khusus: letakkan di 0,0 tapi z-index paling bawah dan transparan agar tidak merusak bounds browser iOS/Safari
             clone.style.position = 'absolute';
-            clone.style.top = '-9999px';
-            clone.style.left = '-9999px';
+            clone.style.top = '0';
+            clone.style.left = '0';
             clone.style.width = 'max-content';
             clone.style.height = 'max-content';
             clone.style.overflow = 'visible';
+            clone.style.zIndex = '-9999';
+            clone.style.opacity = '0';
             clone.classList.remove('hidden');
             
+            // Buang class 'table-scroll'
             const wadahClone = clone.querySelector('#wadahJadwal');
             if(wadahClone) {
                 wadahClone.classList.remove('table-scroll');
                 wadahClone.style.overflow = 'visible';
                 wadahClone.style.width = 'max-content';
             }
+
+            // [PENTING] Buang atribut 'sticky' yang sering menyebabkan kolom bergeser/tumpang tindih di html2canvas
+            const stickies = clone.querySelectorAll('.sticky');
+            stickies.forEach(el => {
+                el.classList.remove('sticky', 'left-0', 'left-6', 'left-8', 'z-10', 'z-20');
+            });
             
             document.body.appendChild(clone);
             
