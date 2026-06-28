@@ -731,6 +731,9 @@
             clone.style.zIndex = '-9999';
             clone.classList.remove('hidden');
             
+            // [PENTING] Ganti font ke standar sistem khusus untuk gambar ekspor karena html2canvas sering salah menghitung baseline (posisi vertikal) untuk font custom seperti Poppins.
+            clone.style.fontFamily = 'Arial, Helvetica, sans-serif';
+            
             // Buang class 'table-scroll'
             const wadahClone = clone.querySelector('#wadahJadwal');
             if(wadahClone) {
