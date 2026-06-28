@@ -214,8 +214,9 @@ function doPost(e) {
     for (var i = 1; i < rows.length; i++) {
       if (rows[i][0].toString().toLowerCase() === usr) return ContentService.createTextOutput(JSON.stringify({status: "error", message: "Username terpakai!"})).setMimeType(ContentService.MimeType.JSON);
     }
-    // Tambahkan default Jatah (12 Tahunan, Periode)
-    sheet.appendRow([usr, data.nama, data.password, "", "Belum", "", 12, "", "Jan-Des"]);
+    var yr = new Date().getFullYear();
+    var defPer = yr + "-01-01|" + yr + "-12-31";
+    sheet.appendRow([usr, data.nama, data.password, "", "Belum", "", 12, "", defPer]);
     return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
   }
   
@@ -320,7 +321,7 @@ function doPost(e) {
     var sheet = ss.getSheetByName("DataPresensi");
     var now = new Date();
     var tanggal_wib = Utilities.formatDate(now, "GMT+7", "dd-MM-yyyy");
-    var jam_wib = "'" + Utilities.formatDate(now, "GMT+7", "HH.mm"); // Trik petik tunggal anti 9.2 bug
+    var jam_wib = "'" + Utilities.formatDate(now, "GMT+7", "HH.mm");
     var time_milidetik = now.getTime();
     
     var fotoUrl = "";
@@ -388,17 +389,14 @@ function doPost(e) {
 
   else if (action === "get_cuti_user") {
     var sheetUser = ss.getSheetByName("DataSatpam");
-    var jatahTahunan = 12; var periode = "Jan-Des";
+    var yr = new Date().getFullYear();
+    var jatahTahunan = 12; var periode = yr + "-01-01|" + yr + "-12-31";
     if (sheetUser) {
       var rowsUser = sheetUser.getDataRange().getValues();
-      if(rowsUser[0].length < 7 || rowsUser[0][6] !== "Jatah Cuti Tahunan") {
-        sheetUser.getRange(1, 7).setValue("Jatah Cuti Tahunan");
-        sheetUser.getRange(1, 9).setValue("Periode Cuti");
-      }
       for (var i = 1; i < rowsUser.length; i++) {
         if (rowsUser[i][0].toString() === data.username) {
           jatahTahunan = rowsUser[i][6] !== undefined && rowsUser[i][6] !== "" ? parseInt(rowsUser[i][6]) : 12;
-          periode = rowsUser[i][8] !== undefined && rowsUser[i][8] !== "" ? rowsUser[i][8] : "Jan-Des";
+          periode = rowsUser[i][8] !== undefined && rowsUser[i][8] !== "" ? rowsUser[i][8] : (yr + "-01-01|" + yr + "-12-31");
           break;
         }
       }
@@ -456,10 +454,6 @@ function doPost(e) {
   else if (action === "update_jatah") {
     var sheet = ss.getSheetByName("DataSatpam");
     var rows = sheet.getDataRange().getValues();
-    if(rows[0].length < 7 || rows[0][6] !== "Jatah Cuti Tahunan") {
-      sheet.getRange(1, 7).setValue("Jatah Cuti Tahunan");
-      sheet.getRange(1, 9).setValue("Periode Cuti");
-    }
     for (var i = 1; i < rows.length; i++) {
       if (rows[i][0].toString() === data.username) {
         sheet.getRange(i + 1, 7).setValue(data.tahunan);
@@ -474,9 +468,9 @@ function doPost(e) {
   else if (action === "get_rekap_data") {
     try {
       var uname = data.username;
-      var isShift = data.isShift === true; // Dari admin.html checkbox
-      var tglAwal = new Date(data.tglAwal); // YYYY-MM-DD
-      var tglAkhir = new Date(data.tglAkhir); // YYYY-MM-DD
+      var isShift = data.isShift === true;
+      var tglAwal = new Date(data.tglAwal);
+      var tglAkhir = new Date(data.tglAkhir);
       
       var sheetPresensi = ss.getSheetByName("DataPresensi");
       var rowsPresensi = sheetPresensi ? sheetPresensi.getDataRange().getValues() : [];
@@ -524,7 +518,7 @@ function doPost(e) {
         if (isCuti) {
            resRow.sts = jenisCuti;
            resRow.msk = "-"; resRow.plg = "-";
-           sum.tHari++; // Cuti dihitung sebagai hari kerja yg sah
+           sum.tHari++;
         }
         else if (rowP) {
            var mTxt = rowP[3] ? formatJam(rowP[3]) : "";

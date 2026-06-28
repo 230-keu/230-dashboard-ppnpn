@@ -219,9 +219,15 @@
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Jatah Cuti Tahunan (Hari)</label>
                     <input type="number" id="editJatahTahunan" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:border-blue-400 outline-none text-sm">
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Periode Aktif (Cth: Jan - Des 2024)</label>
-                    <input type="text" id="editPeriode" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:border-blue-400 outline-none text-sm">
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Periode Mulai</label>
+                        <input type="date" id="editPeriodeMulai" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white focus:border-blue-400 outline-none text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Periode Selesai</label>
+                        <input type="date" id="editPeriodeSelesai" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white focus:border-blue-400 outline-none text-sm">
+                    </div>
                 </div>
             </div>
             <div class="flex gap-2">
@@ -633,15 +639,26 @@
         function bukaEditJatah(usr, thn, per) {
             document.getElementById('editUsrJatah').value = usr;
             document.getElementById('editJatahTahunan').value = thn;
-            document.getElementById('editPeriode').value = per;
+            if(per && per.includes('|')) {
+                document.getElementById('editPeriodeMulai').value = per.split('|')[0];
+                document.getElementById('editPeriodeSelesai').value = per.split('|')[1];
+            } else {
+                document.getElementById('editPeriodeMulai').value = "";
+                document.getElementById('editPeriodeSelesai').value = "";
+            }
             document.getElementById('modalJatah').classList.remove('hidden');
         }
         function simpanJatah() {
+            const perMulai = document.getElementById('editPeriodeMulai').value;
+            const perSelesai = document.getElementById('editPeriodeSelesai').value;
+            if(!perMulai || !perSelesai) return alert("Pilih rentang tanggal periode dengan lengkap!");
+            const perGabung = perMulai + "|" + perSelesai;
+
             document.getElementById('loadingOverlay').classList.remove('hidden');
             document.getElementById('modalJatah').classList.add('hidden');
             fetch(URL_GAS, { method: 'POST', body: JSON.stringify({ 
                 action: 'update_jatah', username: document.getElementById('editUsrJatah').value,
-                tahunan: document.getElementById('editJatahTahunan').value, periode: document.getElementById('editPeriode').value
+                tahunan: document.getElementById('editJatahTahunan').value, periode: perGabung
             })}).then(()=> { document.getElementById('loadingOverlay').classList.add('hidden'); muatPegawai(); });
         }
 

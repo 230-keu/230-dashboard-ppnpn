@@ -513,12 +513,17 @@
         function logout() { localStorage.clear(); window.location.href = URL_LOGIN; }
 
         // --- SISTEM CUTI LOGIC ---
+        let globalSisaTahunan = 0;
+        let globalPeriode = "";
+
         function muatCuti() {
             fetch(URL_GAS, {
                 method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({ action: 'get_cuti_user', username: userUsername })
             }).then(res => res.json()).then(data => {
                 if(data.status === "success") {
+                    globalSisaTahunan = data.sisa_tahunan;
+                    globalPeriode = data.periode;
                     document.getElementById('sisaCutiTahunan').innerText = data.sisa_tahunan + " Hari";
                     
                     let html = "";
@@ -595,6 +600,25 @@
             if(!m || !s || h === "0") return alert("Isi tanggal dengan benar!");
             if(!a) return alert("Alasan wajib diisi!");
             if(jns === "Cuti Sakit" && !f) return alert("Surat/Keterangan Sakit wajib dilampirkan!");
+            
+            // Validasi Jatah Cuti Tahunan
+            if(jns === "Cuti Tahunan" && parseInt(h) > globalSisaTahunan) {
+                return alert("Jatah Cuti Tahunan Anda sudah habis atau tidak mencukupi untuk jumlah hari tersebut!");
+            }
+
+            // Validasi Periode
+            if(globalPeriode && globalPeriode.includes('|')) {
+                const parts = globalPeriode.split('|');
+                const tMulai = new Date(m);
+                const tSelesai = new Date(s);
+                const pAwal = new Date(parts[0]);
+                const pAkhir = new Date(parts[1]);
+                pAkhir.setHours(23, 59, 59);
+                
+                if(tMulai < pAwal || tSelesai > pAkhir) {
+                    return alert("Tanggal cuti yang Anda pilih berada di luar periode aktif yang diizinkan (" + parts[0] + " s/d " + parts[1] + "). Hubungi Admin.");
+                }
+            }
             
             document.getElementById('btnKirimCuti').innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengirim...';
             document.getElementById('btnKirimCuti').disabled = true;
