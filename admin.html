@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://arngoding.github.io/aset-presensi-230/face-api.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.3.2/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image-more/3.2.0/dom-to-image-more.min.js"></script>
 
     <style>
         body { font-family: 'Poppins', sans-serif; }
@@ -757,16 +757,15 @@
             
             // Beri waktu sebentar agar layout rendering selesai merentang
             setTimeout(() => {
-                html2canvas(clone, { 
-                    scale: 2, 
-                    backgroundColor: "#ffffff",
-                    windowWidth: clone.scrollWidth,
-                    windowHeight: clone.scrollHeight
-                }).then(canvas => {
+                domtoimage.toPng(clone, { 
+                    bgcolor: '#ffffff',
+                    width: clone.scrollWidth,
+                    height: clone.scrollHeight,
+                    style: { transform: 'scale(1)', transformOrigin: 'top left' }
+                }).then(dataUrl => {
                     document.body.removeChild(clone);
                     wadahAsli.scrollLeft = scrollXAsli;
                     
-                    const dataUrl = canvas.toDataURL("image/png");
                     const link = document.createElement('a');
                     link.download = `Jadwal_Satpam_${document.getElementById('filterBulanJadwal').value}.png`;
                     link.href = dataUrl;
