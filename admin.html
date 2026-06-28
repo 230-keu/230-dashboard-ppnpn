@@ -715,12 +715,28 @@
 
         function unduhJadwal() {
             const area = document.getElementById('areaCaptureJadwal');
+            const wadahAsli = document.getElementById('wadahJadwal');
+            const scrollXAsli = wadahAsli.scrollLeft;
+            wadahAsli.scrollLeft = 0;
             
-            // Fix terpotong: Matikan scroll dan set lebar menjadi full
-            const wadah = document.getElementById('wadahJadwal');
-            wadah.classList.remove('table-scroll');
-            wadah.style.overflow = 'visible';
-            wadah.style.width = 'max-content';
+            // Trik jitu untuk HP/Layar kecil: Clone elemennya lalu direntangkan paksa di background
+            const clone = area.cloneNode(true);
+            clone.style.position = 'absolute';
+            clone.style.top = '-9999px';
+            clone.style.left = '-9999px';
+            clone.style.width = 'max-content';
+            clone.style.height = 'max-content';
+            clone.style.overflow = 'visible';
+            clone.classList.remove('hidden');
+            
+            const wadahClone = clone.querySelector('#wadahJadwal');
+            if(wadahClone) {
+                wadahClone.classList.remove('table-scroll');
+                wadahClone.style.overflow = 'visible';
+                wadahClone.style.width = 'max-content';
+            }
+            
+            document.body.appendChild(clone);
             
             const btnUnduh = document.getElementById('btnUnduhJadwal');
             const btnHtml = btnUnduh.innerHTML;
@@ -729,11 +745,14 @@
             
             // Beri waktu sebentar agar layout rendering selesai merentang
             setTimeout(() => {
-                html2canvas(area, { scale: 2, backgroundColor: "#ffffff" }).then(canvas => {
-                    // Kembalikan ke bentuk scroll awal
-                    wadah.classList.add('table-scroll');
-                    wadah.style.overflow = '';
-                    wadah.style.width = '100%';
+                html2canvas(clone, { 
+                    scale: 2, 
+                    backgroundColor: "#ffffff",
+                    windowWidth: clone.scrollWidth,
+                    windowHeight: clone.scrollHeight
+                }).then(canvas => {
+                    document.body.removeChild(clone);
+                    wadahAsli.scrollLeft = scrollXAsli;
                     
                     const dataUrl = canvas.toDataURL("image/png");
                     const link = document.createElement('a');
@@ -745,9 +764,8 @@
                     btnUnduh.disabled = false;
                 }).catch(err => {
                     alert("Gagal membuat gambar: " + err);
-                    wadah.classList.add('table-scroll');
-                    wadah.style.overflow = '';
-                    wadah.style.width = '100%';
+                    document.body.removeChild(clone);
+                    wadahAsli.scrollLeft = scrollXAsli;
                     btnUnduh.innerHTML = btnHtml;
                     btnUnduh.disabled = false;
                 });
