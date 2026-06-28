@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://arngoding.github.io/aset-presensi-230/face-api.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
         body { font-family: 'Poppins', sans-serif; }
@@ -226,21 +227,28 @@
                 <button onclick="muatJadwal()" class="w-full md:w-auto bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-all active:scale-95 text-sm flex items-center justify-center gap-2">
                     <i class="fa-solid fa-table-list"></i> Tampilkan
                 </button>
+                <button id="btnUnduhJadwal" onclick="unduhJadwal()" class="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-all active:scale-95 text-sm flex items-center justify-center gap-2 hidden">
+                    <i class="fa-solid fa-share-nodes"></i> Bagikan / Unduh
+                </button>
             </div>
             
-            <div id="wadahJadwal" class="table-scroll bg-white rounded-2xl border border-slate-200 shadow-sm w-full p-2 hidden">
-            </div>
-            
-            <div id="legendaJadwal" class="mt-4 flex flex-wrap gap-2 text-[10px] font-semibold hidden">
-                <span class="px-2 py-1 rounded bg-red-500 text-white">P: Pagi Kantor</span>
-                <span class="px-2 py-1 rounded bg-slate-400 text-white">M: Malam Kantor</span>
-                <span class="px-2 py-1 rounded bg-fuchsia-500 text-white">PS: Pagi RD Subarkah</span>
-                <span class="px-2 py-1 rounded bg-slate-100 border border-slate-300 text-slate-700">MS: Malam RD Subarkah</span>
-                <span class="px-2 py-1 rounded bg-green-600 text-white">PR: Pagi RD Kakanwil</span>
-                <span class="px-2 py-1 rounded bg-blue-500 text-white">MR: Malam RD Kakanwil</span>
-                <span class="px-2 py-1 rounded bg-orange-500 text-white">PG: Pagi Gudang BDK</span>
-                <span class="px-2 py-1 rounded bg-purple-600 text-white">MG: Malam Gudang BDK</span>
-                <span class="px-2 py-1 rounded bg-red-100 text-red-700 border border-red-300"><i class="fa-solid fa-xmark text-red-600"></i> Bolos/Mangkir</span>
+            <div id="areaCaptureJadwal" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm w-full hidden relative overflow-hidden">
+                <h3 id="judulJadwalCapture" class="text-lg font-extrabold text-center text-slate-800 mb-4 tracking-wide uppercase border-b-2 border-slate-100 pb-2">JADWAL SATPAM</h3>
+                
+                <div id="wadahJadwal" class="table-scroll w-full p-1">
+                </div>
+                
+                <div id="legendaJadwal" class="mt-5 flex flex-wrap justify-center gap-2 text-[10px] font-semibold">
+                    <span class="px-2 py-1 rounded bg-red-500 text-white">P: Pagi Kantor</span>
+                    <span class="px-2 py-1 rounded bg-slate-400 text-white">M: Malam Kantor</span>
+                    <span class="px-2 py-1 rounded bg-fuchsia-500 text-white">PS: Pagi RD Subarkah</span>
+                    <span class="px-2 py-1 rounded bg-slate-100 border border-slate-300 text-slate-700">MS: Malam RD Subarkah</span>
+                    <span class="px-2 py-1 rounded bg-green-600 text-white">PR: Pagi RD Kakanwil</span>
+                    <span class="px-2 py-1 rounded bg-blue-500 text-white">MR: Malam RD Kakanwil</span>
+                    <span class="px-2 py-1 rounded bg-orange-500 text-white">PG: Pagi Gudang BDK</span>
+                    <span class="px-2 py-1 rounded bg-purple-600 text-white">MG: Malam Gudang BDK</span>
+                    <span class="px-2 py-1 rounded bg-red-100 text-red-700 border border-red-300"><i class="fa-solid fa-xmark text-red-600"></i> Bolos/Mangkir</span>
+                </div>
             </div>
         </div>
     </div>
@@ -705,14 +713,42 @@
             })}).then(()=> { document.getElementById('loadingOverlay').classList.add('hidden'); muatPegawai(); });
         }
 
+        function unduhJadwal() {
+            const area = document.getElementById('areaCaptureJadwal');
+            const originalScroll = document.getElementById('wadahJadwal').scrollLeft;
+            document.getElementById('wadahJadwal').scrollLeft = 0; 
+            
+            const btnUnduh = document.getElementById('btnUnduhJadwal');
+            const btnHtml = btnUnduh.innerHTML;
+            btnUnduh.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Membuat Gambar...';
+            btnUnduh.disabled = true;
+            
+            html2canvas(area, { scale: 2, backgroundColor: "#ffffff" }).then(canvas => {
+                document.getElementById('wadahJadwal').scrollLeft = originalScroll;
+                
+                const dataUrl = canvas.toDataURL("image/png");
+                const link = document.createElement('a');
+                link.download = `Jadwal_Satpam_${document.getElementById('filterBulanJadwal').value}.png`;
+                link.href = dataUrl;
+                link.click();
+                
+                btnUnduh.innerHTML = btnHtml;
+                btnUnduh.disabled = false;
+            }).catch(err => {
+                alert("Gagal membuat gambar: " + err);
+                btnUnduh.innerHTML = btnHtml;
+                btnUnduh.disabled = false;
+            });
+        }
+
         function muatJadwal() {
             const blnThn = document.getElementById('filterBulanJadwal').value;
             if(!blnThn) return alert("Pilih bulan & tahun!");
             const bandingkan = document.getElementById('chkBandingkan').checked;
             
-            document.getElementById('wadahJadwal').classList.remove('hidden');
+            document.getElementById('areaCaptureJadwal').classList.remove('hidden');
+            document.getElementById('btnUnduhJadwal').classList.add('hidden');
             document.getElementById('wadahJadwal').innerHTML = '<div class="p-8 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><br>Memuat Jadwal...</div>';
-            document.getElementById('legendaJadwal').classList.add('hidden');
             
             fetch(URL_GAS, { method: 'POST', body: JSON.stringify({ action: 'get_jadwal_bulanan', bulanTahun: blnThn, bandingkan: bandingkan }) })
             .then(res => res.json()).then(data => {
@@ -790,8 +826,11 @@
                 </table>`;
                 
                 document.getElementById('wadahJadwal').innerHTML = tableHtml;
-                document.getElementById('legendaJadwal').classList.remove('hidden');
-                document.getElementById('legendaJadwal').classList.add('flex');
+                
+                const namaBulan = new Date(y, m-1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                document.getElementById('judulJadwalCapture').innerText = `JADWAL SATPAM - ${namaBulan.toUpperCase()}`;
+                
+                document.getElementById('btnUnduhJadwal').classList.remove('hidden');
             });
         }
 
