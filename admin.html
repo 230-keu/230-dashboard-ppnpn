@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://arngoding.github.io/aset-presensi-230/face-api.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image-more/3.2.0/dom-to-image-more.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
         body { font-family: 'Poppins', sans-serif; }
@@ -721,7 +721,7 @@
             
             const clone = area.cloneNode(true);
             
-            // Trik khusus: letakkan di 0,0 tapi z-index paling bawah dan transparan agar tidak merusak bounds browser iOS/Safari
+            // Trik khusus: letakkan di 0,0 tapi z-index paling bawah dan transparan
             clone.style.position = 'absolute';
             clone.style.top = '0';
             clone.style.left = '0';
@@ -731,8 +731,17 @@
             clone.style.zIndex = '-9999';
             clone.classList.remove('hidden');
             
-            // [PENTING] Ganti font ke standar sistem khusus untuk gambar ekspor karena html2canvas sering salah menghitung baseline (posisi vertikal) untuk font custom seperti Poppins.
-            clone.style.fontFamily = 'Arial, Helvetica, sans-serif';
+            // [PENTING] Memaksa seluruh teks di dalam clone memiliki line-height 1 agar html2canvas tidak salah kalkulasi baseline huruf yang menyebabkan melorot ke bawah.
+            const styleFix = document.createElement('style');
+            styleFix.innerHTML = '#areaCaptureJadwal * { line-height: 1 !important; font-family: Arial, sans-serif !important; }';
+            clone.appendChild(styleFix);
+            
+            // Tambahkan padding-bottom paksa ke sel jadwal dan legenda untuk mengangkat teks
+            const cells = clone.querySelectorAll('td, th, span.inline-block');
+            cells.forEach(c => {
+                c.style.paddingBottom = '4px';
+                c.style.paddingTop = '2px';
+            });
             
             // Buang class 'table-scroll'
             const wadahClone = clone.querySelector('#wadahJadwal');
@@ -742,7 +751,7 @@
                 wadahClone.style.width = 'max-content';
             }
 
-            // [PENTING] Buang atribut 'sticky' yang sering menyebabkan kolom bergeser/tumpang tindih di html2canvas
+            // Buang atribut 'sticky' yang sering menyebabkan kolom bergeser di html2canvas
             const stickies = clone.querySelectorAll('.sticky');
             stickies.forEach(el => {
                 el.classList.remove('sticky', 'left-0', 'left-6', 'left-8', 'z-10', 'z-20');
@@ -755,17 +764,19 @@
             btnUnduh.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Membuat Gambar...';
             btnUnduh.disabled = true;
             
-            // Beri waktu sebentar agar layout rendering selesai merentang
             setTimeout(() => {
-                domtoimage.toPng(clone, { 
-                    bgcolor: '#ffffff',
-                    width: clone.scrollWidth,
-                    height: clone.scrollHeight,
-                    style: { transform: 'scale(1)', transformOrigin: 'top left' }
-                }).then(dataUrl => {
+                html2canvas(clone, { 
+                    scale: 2, 
+                    backgroundColor: "#ffffff",
+                    windowWidth: clone.scrollWidth,
+                    windowHeight: clone.scrollHeight,
+                    scrollY: 0,
+                    scrollX: 0
+                }).then(canvas => {
                     document.body.removeChild(clone);
                     wadahAsli.scrollLeft = scrollXAsli;
                     
+                    const dataUrl = canvas.toDataURL("image/png");
                     const link = document.createElement('a');
                     link.download = `Jadwal_Satpam_${document.getElementById('filterBulanJadwal').value}.png`;
                     link.href = dataUrl;
