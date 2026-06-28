@@ -739,7 +739,7 @@
                     if (child.nodeType === 3 && child.nodeValue.trim().length > 0) {
                         const wrapper = document.createElement('span');
                         wrapper.style.position = 'relative';
-                        wrapper.style.top = '-3px'; // Dongkrak fisik teks 3 pixel ke atas!
+                        wrapper.style.top = '-1.5px'; // Penyesuaian ke tengah yang lebih halus (perfect center)
                         wrapper.textContent = child.nodeValue;
                         el.replaceChild(wrapper, child);
                     } else if (child.nodeType === 1) {
