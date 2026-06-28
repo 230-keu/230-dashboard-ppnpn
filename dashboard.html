@@ -516,6 +516,13 @@
         let globalSisaTahunan = 0;
         let globalPeriode = "";
 
+        function formatTanggalIndo(tglString) {
+            if(!tglString) return "-";
+            const date = new Date(tglString);
+            if(isNaN(date)) return tglString;
+            return date.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
         function muatCuti() {
             fetch(URL_GAS, {
                 method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -540,7 +547,7 @@
                                 <div><span class="font-bold text-slate-800">${r.jenis}</span><br><span class="text-[10px] text-slate-400">${r.tgl_pengajuan}</span></div>
                                 <span class="px-2 py-0.5 rounded-full text-[9px] font-bold ${color}">${r.status}</span>
                             </div>
-                            <div class="text-slate-600 mb-1"><i class="fa-solid fa-calendar-day text-blue-400 mr-1"></i> ${r.mulai} s.d ${r.selesai} (${r.hari} Hari)</div>
+                            <div class="text-slate-600 mb-1"><i class="fa-solid fa-calendar-day text-blue-400 mr-1"></i> ${formatTanggalIndo(r.mulai)} s/d ${formatTanggalIndo(r.selesai)} (${r.hari} Hari)</div>
                             <div class="text-slate-500 mb-1"><i class="fa-solid fa-comment-dots text-slate-400 mr-1"></i> ${r.alasan}</div>
                             ${btnLampiran}
                             ${cttn}

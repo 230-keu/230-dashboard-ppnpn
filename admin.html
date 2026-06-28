@@ -584,6 +584,13 @@
         }
 
         // --- SISTEM CUTI ADMIN ---
+        function formatTanggalIndo(tglString) {
+            if(!tglString) return "-";
+            const date = new Date(tglString);
+            if(isNaN(date)) return tglString;
+            return date.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
         function muatSemuaCuti() {
             document.querySelector('#tabelCutiAll tbody').innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><br>Memuat Data Cuti...</td></tr>';
             fetch(URL_GAS, { method: 'POST', body: JSON.stringify({ action: 'get_cuti_all' }) }).then(res => res.json()).then(data => {
@@ -610,7 +617,7 @@
                             <td class="p-3 md:p-4 font-bold text-blue-700">@${r.username}<br><span class="text-xs text-slate-500 font-normal">${r.nama}</span></td>
                             <td class="p-3 md:p-4 text-center">
                                 <span class="font-bold text-slate-800 text-xs">${r.jenis}</span><br>
-                                <span class="text-[10px] text-slate-500">${r.mulai} s.d ${r.selesai} (${r.hari} Hr)</span>
+                                <span class="text-[10px] text-slate-500">${formatTanggalIndo(r.mulai)} s/d ${formatTanggalIndo(r.selesai)} (${r.hari} Hr)</span>
                             </td>
                             <td class="p-3 md:p-4 text-xs text-slate-600 max-w-[200px] truncate" title="${r.alasan}">${r.alasan}${lamp}</td>
                             <td class="p-3 md:p-4 text-center"><span class="px-2.5 py-1 rounded-full text-[10px] font-bold border ${color}">${r.status}</span>${cttn}</td>
