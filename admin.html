@@ -731,6 +731,26 @@
             clone.style.zIndex = '-9999';
             clone.classList.remove('hidden');
             
+            // [PENTING] Fungsi peretasan mutlak: Mengubah geometri (posisi Y) setiap teks
+            // Ini satu-satunya cara mengatasi bug font baseline membandel di html2canvas pada perangkat tertentu.
+            function offsetTextNodes(el) {
+                if (el.tagName && el.tagName.toLowerCase() === 'i') return; // Abaikan ikon fontawesome
+                Array.from(el.childNodes).forEach(child => {
+                    if (child.nodeType === 3 && child.nodeValue.trim().length > 0) {
+                        const wrapper = document.createElement('span');
+                        wrapper.style.position = 'relative';
+                        wrapper.style.top = '-3px'; // Dongkrak fisik teks 3 pixel ke atas!
+                        wrapper.textContent = child.nodeValue;
+                        el.replaceChild(wrapper, child);
+                    } else if (child.nodeType === 1) {
+                        offsetTextNodes(child);
+                    }
+                });
+            }
+            
+            // Terapkan dongkrak fisik hanya pada clone agar tampilan asli di layar tidak rusak
+            offsetTextNodes(clone);
+            
             // Buang class 'table-scroll'
             const wadahClone = clone.querySelector('#wadahJadwal');
             if(wadahClone) {
@@ -759,23 +779,7 @@
                     windowWidth: clone.scrollWidth,
                     windowHeight: clone.scrollHeight,
                     scrollY: 0,
-                    scrollX: 0,
-                    onclone: function(clonedDoc) {
-                        const style = clonedDoc.createElement('style');
-                        style.innerHTML = `
-                            #areaCaptureJadwal, #areaCaptureJadwal * { 
-                                font-family: Arial, Helvetica, sans-serif !important; 
-                            }
-                            #areaCaptureJadwal td, 
-                            #areaCaptureJadwal th, 
-                            #legendaJadwal span {
-                                padding-bottom: 5px !important;
-                                padding-top: 1px !important;
-                                line-height: 1.1 !important;
-                            }
-                        `;
-                        clonedDoc.head.appendChild(style);
-                    }
+                    scrollX: 0
                 }).then(canvas => {
                     document.body.removeChild(clone);
                     wadahAsli.scrollLeft = scrollXAsli;
