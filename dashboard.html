@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <script src="https://arngoding.github.io/aset-presensi-230/face-api.min.js"></script>
+    <script src="aset/face-api.min.js"></script>
 
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #f3f4f6; }
@@ -195,7 +195,7 @@
         const URL_GAS = "/api/proxy";
         const URL_LOGIN = "index.html";
         const URL_LIVENESS = "liveness.html";
-        const MODEL_URL = 'https://arngoding.github.io/aset-presensi-230/weights'; 
+        const MODEL_URL = 'weights'; 
 
         const userUsername = localStorage.getItem('username');
         const userNama = localStorage.getItem('user_nama');
@@ -323,6 +323,19 @@
                     statusBadge.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i> Gagal Memuat';
                     statusBadge.className = "inline-block mt-2 px-6 py-2 rounded-full font-bold text-sm bg-red-100 text-red-700 shadow-sm border border-red-200";
                 });
+        }
+
+        function preloadAI() {
+            if(!aiDimuat) {
+                Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                ]).then(() => {
+                    aiDimuat = true; 
+                    console.log('AI Pre-loaded successfully!');
+                }).catch(err => console.log('Pre-load AI failed:', err));
+            }
         }
 
         // --- SISTEM SETUP WAJAH MANDIRI (BARU) ---
@@ -675,7 +688,7 @@
             } else sendData("");
         }
 
-        window.onload = function() { setSapaan(); muatStatus(); muatCuti(); };
+        window.onload = function() { setSapaan(); muatStatus(); muatCuti(); preloadAI(); };
     </script>
     <script>
         if ('serviceWorker' in navigator) {

@@ -7,15 +7,16 @@ const urlsToCache = [
     '/dashboard.html',
     '/liveness.html',
     '/admin.html',
-    'https://arngoding.github.io/aset-presensi-230/face-api.min.js',
-    'https://arngoding.github.io/aset-presensi-230/weights/tiny_face_detector_model-weights_manifest.json',
-    'https://arngoding.github.io/aset-presensi-230/weights/tiny_face_detector_model.weights.bin',
-    'https://arngoding.github.io/aset-presensi-230/weights/face_landmark_68_model-weights_manifest.json',
-    'https://arngoding.github.io/aset-presensi-230/weights/face_landmark_68_model.weights.bin',
-    'https://arngoding.github.io/aset-presensi-230/weights/face_expression_model-weights_manifest.json',
-    'https://arngoding.github.io/aset-presensi-230/weights/face_expression_model.weights.bin',
-    'https://arngoding.github.io/aset-presensi-230/weights/face_recognition_model-weights_manifest.json',
-    'https://arngoding.github.io/aset-presensi-230/weights/face_recognition_model.weights.bin'
+    '/aset/face-api.min.js',
+    '/weights/tiny_face_detector_model-weights_manifest.json',
+    '/weights/tiny_face_detector_model-shard1',
+    '/weights/face_landmark_68_model-weights_manifest.json',
+    '/weights/face_landmark_68_model-shard1',
+    '/weights/face_expression_model-weights_manifest.json',
+    '/weights/face_expression_model-shard1',
+    '/weights/face_recognition_model-weights_manifest.json',
+    '/weights/face_recognition_model-shard1',
+    '/weights/face_recognition_model-shard2'
 ];
 
 // Proses Mengunduh & Menyimpan saat pertama kali diakses
