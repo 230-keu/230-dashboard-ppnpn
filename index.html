@@ -49,12 +49,12 @@
         <div id="formLogin" class="fade-in block">
             <div class="space-y-4">
                 <div class="relative">
-                    <input type="text" id="username" placeholder="Masukkan Username" autocapitalize="none" autocorrect="off" autocomplete="username" class="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-white/70 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm font-medium text-slate-700 shadow-sm" required>
+                    <input type="text" id="username" placeholder="Masukkan Username" autocapitalize="none" autocorrect="off" autocomplete="off" onkeypress="if(event.key === 'Enter') prosesLogin()" class="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-white/70 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm font-medium text-slate-700 shadow-sm" required>
                     <i class="fa-solid fa-user absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 transition-colors icon-input"></i>
                 </div>
                 
                 <div class="relative">
-                    <input type="password" id="password" placeholder="Password" class="w-full pl-12 pr-12 py-3.5 rounded-2xl border border-slate-200 bg-white/70 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm font-medium text-slate-700 shadow-sm" required>
+                    <input type="password" id="password" placeholder="Password" autocomplete="new-password" onkeypress="if(event.key === 'Enter') prosesLogin()" class="w-full pl-12 pr-12 py-3.5 rounded-2xl border border-slate-200 bg-white/70 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm font-medium text-slate-700 shadow-sm" required>
                     <i class="fa-solid fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 transition-colors icon-input"></i>
                     <button type="button" onclick="togglePassword('password', 'eyeLogin')" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-blue-500 focus:outline-none transition-colors">
                         <i id="eyeLogin" class="fa-regular fa-eye"></i>
@@ -78,7 +78,7 @@
             <div class="space-y-4">
                 <div class="group">
                     <div class="relative">
-                        <input type="text" id="regUsername" placeholder="Buat Username (Tanpa Spasi)" autocapitalize="none" autocorrect="off" class="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-white/70 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm font-medium text-slate-700 shadow-sm" required>
+                        <input type="text" id="regUsername" placeholder="Buat Username (Tanpa Spasi)" autocapitalize="none" autocorrect="off" autocomplete="off" onkeypress="if(event.key === 'Enter') prosesDaftar()" class="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-white/70 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm font-medium text-slate-700 shadow-sm" required>
                         <i class="fa-solid fa-at absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 transition-colors icon-input"></i>
                     </div>
                     <p class="hidden group-focus-within:block text-[10px] text-indigo-600 mt-1.5 ml-2 transition-all fade-in"><i class="fa-solid fa-circle-info mr-1"></i>Contoh: kanwil230</p>
@@ -86,7 +86,7 @@
 
                 <div class="group">
                     <div class="relative">
-                        <input type="text" id="regNama" placeholder="Nama Lengkap (Sesuai KTP)" class="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-white/70 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm font-medium text-slate-700 shadow-sm" required>
+                        <input type="text" id="regNama" placeholder="Nama Lengkap (Sesuai KTP)" autocomplete="off" onkeypress="if(event.key === 'Enter') prosesDaftar()" class="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-white/70 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm font-medium text-slate-700 shadow-sm" required>
                         <i class="fa-regular fa-id-card absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 transition-colors icon-input"></i>
                     </div>
                     <p class="hidden group-focus-within:block text-[10px] text-indigo-600 mt-1.5 ml-2 transition-all fade-in"><i class="fa-solid fa-circle-info mr-1"></i>Contoh: Kantor Wilayah</p>
@@ -94,7 +94,7 @@
                 
                 <div class="group">
                     <div class="relative">
-                        <input type="password" id="regPassword" placeholder="Buat Password" class="w-full pl-12 pr-12 py-3.5 rounded-2xl border border-slate-200 bg-white/70 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm font-medium text-slate-700 shadow-sm" required>
+                        <input type="password" id="regPassword" placeholder="Buat Password" autocomplete="new-password" onkeypress="if(event.key === 'Enter') prosesDaftar()" class="w-full pl-12 pr-12 py-3.5 rounded-2xl border border-slate-200 bg-white/70 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm font-medium text-slate-700 shadow-sm" required>
                         <i class="fa-solid fa-key absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 transition-colors icon-input"></i>
                         <button type="button" onclick="togglePassword('regPassword', 'eyeDaftar')" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-indigo-500 focus:outline-none transition-colors">
                             <i id="eyeDaftar" class="fa-regular fa-eye"></i>
