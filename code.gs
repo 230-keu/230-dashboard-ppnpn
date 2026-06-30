@@ -216,7 +216,7 @@ function doPost(e) {
     }
     var yr = new Date().getFullYear();
     var defPer = yr + "-01-01|" + yr + "-12-31";
-    sheet.appendRow([usr, data.nama, data.password, "", "Belum", "", 12, "", defPer]);
+    sheet.appendRow([usr, data.nama, data.password, "", "Belum", "", 0, "", defPer]);
     return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
   }
   
