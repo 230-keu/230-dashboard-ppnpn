@@ -211,9 +211,23 @@
         let aiDimuat = false;
         let deteksiInterval;
 
+        function getWaktuSapaan() {
+            const hour = new Date().getHours();
+            if (hour < 11) return "Selamat Pagi";
+            if (hour < 15) return "Selamat Siang";
+            if (hour < 18) return "Selamat Sore";
+            return "Selamat Malam";
+        }
+
+        function toProperCase(str) {
+            if (!str) return "";
+            return str.toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
+        }
+
         function setSapaan() {
-            const namaPanggilan = userNama.split(' ')[0];
-            document.getElementById('sapaan').innerText = "Halo, " + namaPanggilan + "!";
+            const sapaanWaktu = getWaktuSapaan();
+            const namaProper = toProperCase(userNama);
+            document.getElementById('sapaan').innerText = sapaanWaktu + ", " + namaProper;
             document.getElementById('tanggalHariIni').innerText = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }
 
