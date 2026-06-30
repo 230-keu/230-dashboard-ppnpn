@@ -149,7 +149,8 @@
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis Cuti</label>
                         <select id="jenisCuti" onchange="cekLampiranCuti()" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-400 outline-none text-sm transition-all">
                             <option value="Cuti Tahunan">Cuti Tahunan</option>
-                            <option value="Cuti Sakit">Cuti Sakit</option>
+                            <option value="Sakit (Surat Dokter)">Sakit (Surat Dokter)</option>
+                            <option value="Izin">Izin</option>
                         </select>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
@@ -618,7 +619,7 @@
             }
         }
         function cekLampiranCuti() {
-            if(document.getElementById('jenisCuti').value === "Cuti Sakit") document.getElementById('areaLampiran').classList.remove('hidden');
+            if(document.getElementById('jenisCuti').value === "Sakit (Surat Dokter)") document.getElementById('areaLampiran').classList.remove('hidden');
             else { document.getElementById('areaLampiran').classList.add('hidden'); document.getElementById('fileLampiran').value = ""; }
         }
         function hitungHariCuti() {
@@ -645,7 +646,7 @@
             
             if(!m || !s || h === "0") return alert("Isi tanggal dengan benar!");
             if(!a) return alert("Alasan wajib diisi!");
-            if(jns === "Cuti Sakit" && !f) return alert("Surat/Keterangan Sakit wajib dilampirkan!");
+            if(jns === "Sakit (Surat Dokter)" && !f) return alert("Surat/Keterangan Sakit wajib dilampirkan!");
             
             // Validasi Jatah Cuti Tahunan
             if(jns === "Cuti Tahunan" && parseInt(h) > globalSisaTahunan) {

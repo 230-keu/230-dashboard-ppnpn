@@ -69,10 +69,16 @@
         <div id="tabPPNPN" class="tab-content fade-in block">
             <div class="bg-blue-50/50 p-4 md:p-5 rounded-2xl border border-blue-100 mb-6 shadow-inner">
                 <h3 class="text-sm font-bold text-blue-800 mb-3"><i class="fa-solid fa-user-plus mr-1"></i> Tambah Pegawai Baru</h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
                     <input type="text" id="usrBaru" placeholder="Username (Tanpa Spasi)" autocapitalize="none" autocorrect="off" class="w-full px-4 py-2.5 rounded-xl border border-blue-200 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm shadow-sm">
                     <input type="text" id="namaBaru" placeholder="Nama Lengkap" class="w-full px-4 py-2.5 rounded-xl border border-blue-200 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm shadow-sm">
                     <input type="password" id="passBaru" placeholder="Password" class="w-full px-4 py-2.5 rounded-xl border border-blue-200 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm shadow-sm">
+                    <select id="peranBaru" class="w-full px-4 py-2.5 rounded-xl border border-blue-200 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-sm shadow-sm font-semibold text-slate-700">
+                        <option value="Satpam">Satpam</option>
+                        <option value="Pramubakti">Pramubakti</option>
+                        <option value="Petugas Kebersihan">Petugas Kebersihan</option>
+                        <option value="Pengemudi">Pengemudi</option>
+                    </select>
                     <button onclick="tambahPegawai()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl shadow-md transition-all active:scale-95 text-sm flex items-center justify-center gap-2">
                         Simpan <i class="fa-solid fa-floppy-disk"></i>
                     </button>
@@ -85,6 +91,7 @@
                         <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 uppercase tracking-wider text-[11px] font-bold">
                             <th class="p-3 md:p-4">Username</th>
                             <th class="p-3 md:p-4">Nama Lengkap</th>
+                            <th class="p-3 md:p-4 text-center">Peran</th>
                             <th class="p-3 md:p-4 text-center">Status DNA</th>
                             <th class="p-3 md:p-4 text-center">Aksi (Panel)</th>
                         </tr>
@@ -408,6 +415,7 @@
                             <tr class="hover:bg-slate-50 transition-colors">
                                 <td class="p-3 md:p-4 font-mono text-blue-600 font-bold">@${user.username}</td>
                                 <td class="p-3 md:p-4">${user.nama}</td>
+                                <td class="p-3 md:p-4 text-center text-xs font-semibold text-slate-600">${user.peran || 'Satpam'}</td>
                                 <td class="p-3 md:p-4 text-center">
                                     <span class="px-3 py-1 rounded-full text-xs font-bold border ${badgeColor}">${iconWajah}</span>
                                 </td>
@@ -531,12 +539,13 @@
             const usrRaw = document.getElementById('usrBaru').value;
             const nama = document.getElementById('namaBaru').value.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
             const pass = document.getElementById('passBaru').value;
+            const peran = document.getElementById('peranBaru').value;
             if (/\s/.test(usrRaw)) return alert("Username tidak boleh ada spasi!");
             const usr = usrRaw.trim().toLowerCase();
             if(!usr || !nama || !pass) return alert("Semua kolom wajib diisi!");
             
             document.getElementById('loadingOverlay').classList.remove('hidden');
-            fetch(URL_GAS, { method: 'POST', body: JSON.stringify({ action: 'add_user', username: usr, nama: nama, password: pass }) })
+            fetch(URL_GAS, { method: 'POST', body: JSON.stringify({ action: 'add_user', username: usr, nama: nama, password: pass, peran: peran }) })
             .then(res => res.json()).then(data => {
                 document.getElementById('loadingOverlay').classList.add('hidden');
                 if(data.status === "success") {

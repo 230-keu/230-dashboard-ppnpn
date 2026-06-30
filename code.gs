@@ -23,8 +23,9 @@ function doGet(e) {
         nama: rows[i][1],
         status_wajah: statusDNA,
         foto: rows[i][5] || "",
-        jatah_tahunan: rows[i][6] !== undefined && rows[i][6] !== "" ? rows[i][6] : 12,
-        periode: rows[i][8] || "Jan-Des"
+        jatah_tahunan: rows[i][6] !== undefined && rows[i][6] !== "" ? rows[i][6] : 6,
+        periode: rows[i][8] || "Jan-Des",
+        peran: rows[i][9] || "Satpam"
       });
     }
     return ContentService.createTextOutput(JSON.stringify(users)).setMimeType(ContentService.MimeType.JSON);
@@ -59,6 +60,15 @@ function doGet(e) {
   // --- KALKULASI RIWAYAT LOG USER (DASHBOARD MOBIL) ---
   else if (action === "get_riwayat_user") {
     var uname = e.parameter.username;
+    var sheetSatpam = ss.getSheetByName("DataSatpam");
+    var sData = sheetSatpam ? sheetSatpam.getDataRange().getValues() : [];
+    var peran = "Satpam";
+    for(var s=1; s<sData.length; s++) {
+      if(sData[s][0].toString() === uname) {
+        peran = sData[s][9] ? sData[s][9].toString() : "Satpam"; break;
+      }
+    }
+
     var sheet = ss.getSheetByName("DataPresensi");
     var rows = sheet.getDataRange().getValues();
     var riwayat = [];
@@ -77,23 +87,37 @@ function doGet(e) {
         if (masukTxt !== "") {
           var jamM = parseInt(masukTxt.split(".")[0]);
           var mntM = parseInt(masukTxt.split(".")[1]);
+          var wkMasuk = jamM * 60 + mntM;
           
-          if (jamM >= 4 && jamM < 15) {
-            isShiftPagi = true;
-            if ((jamM === 7 && mntM > 0) || jamM > 7) isTL = true;
-          }
-          else if (jamM >= 15 || jamM < 4) {
-            isShiftMalam = true;
-            if ((jamM === 19 && mntM > 0) || jamM > 19 || jamM < 4) isTL = true;
-          }
-          
-          if (pulangTxt === "") {
-            isPSW = true;
-            statusAbsen = "PSW (Lupa Absen)";
+          if (peran === "Satpam") {
+            if (jamM >= 4 && jamM < 15) {
+              isShiftPagi = true;
+              if (wkMasuk > 7 * 60) isTL = true;
+            }
+            else if (jamM >= 15 || jamM < 4) {
+              isShiftMalam = true;
+              var wktMalam = wkMasuk; if (jamM < 4) wktMalam += 24 * 60;
+              if (wktMalam > 19 * 60) isTL = true;
+            }
+            if (pulangTxt === "") {
+              isPSW = true; statusAbsen = "Lupa Absen";
+            } else {
+              var jamK = parseInt(pulangTxt.split(".")[0]);
+              if (isShiftPagi) { if (jamK >= 4 && jamK < 19) isPSW = true; } 
+              else if (isShiftMalam) { if (jamK >= 15 || jamK < 7) isPSW = true; }
+            }
           } else {
-            var jamK = parseInt(pulangTxt.split(".")[0]);
-            if (isShiftPagi) { if (jamK >= 4 && jamK < 19) isPSW = true; } 
-            else if (isShiftMalam) { if (jamK >= 15 || jamK < 7) isPSW = true; }
+            var batasM = (peran === "Petugas Kebersihan" || peran === "Pengemudi") ? (6 * 60 + 30) : (7 * 60);
+            var batasK = 17 * 60;
+            if (wkMasuk > batasM) isTL = true;
+            if (pulangTxt === "") {
+              isPSW = true; statusAbsen = "Lupa Absen";
+            } else {
+              var jamK = parseInt(pulangTxt.split(".")[0]);
+              var mntK = parseInt(pulangTxt.split(".")[1]);
+              var wkKeluar = jamK * 60 + mntK;
+              if (wkKeluar < batasK) isPSW = true;
+            }
           }
         }
         
@@ -118,9 +142,11 @@ function doGet(e) {
     var rowsSatpam = sheetSatpam.getDataRange().getValues();
     var stat_dna = "Belum";
     var user_found = false;
+    var peran = "Satpam";
     for(var s=1; s<rowsSatpam.length; s++) {
       if(rowsSatpam[s][0].toString() === uname) {
         stat_dna = rowsSatpam[s][4] ? rowsSatpam[s][4].toString() : (rowsSatpam[s][3] ? "Disetujui" : "Belum");
+        peran = rowsSatpam[s][9] ? rowsSatpam[s][9].toString() : "Satpam";
         user_found = true;
         break;
       }
@@ -154,15 +180,22 @@ function doGet(e) {
         var jamM = parseInt(wktMasukBersih.split(".")[0]);
         var mntM = parseInt(wktMasukBersih.split(".")[1]);
         
-        if (jamM >= 4 && jamM < 15) { 
-          var batasPagi = 7 * 60;
+        var batasPagi = 7 * 60;
+        if (peran === "Petugas Kebersihan" || peran === "Pengemudi") batasPagi = 6 * 60 + 30; // 06.30
+
+        if (peran === "Satpam") {
+          if (jamM >= 4 && jamM < 15) { 
+            var waktuMasuk = jamM * 60 + mntM;
+            if (waktuMasuk > batasPagi) menit_telat = waktuMasuk - batasPagi;
+          } else if (jamM >= 15 || jamM < 4) { 
+            var batasMalam = 19 * 60;
+            var waktuMasuk = jamM * 60 + mntM;
+            if (jamM < 4) waktuMasuk += 24 * 60; 
+            if (waktuMasuk > batasMalam) menit_telat = waktuMasuk - batasMalam;
+          }
+        } else {
           var waktuMasuk = jamM * 60 + mntM;
           if (waktuMasuk > batasPagi) menit_telat = waktuMasuk - batasPagi;
-        } else if (jamM >= 15 || jamM < 4) { 
-          var batasMalam = 19 * 60;
-          var waktuMasuk = jamM * 60 + mntM;
-          if (jamM < 4) waktuMasuk += 24 * 60; 
-          if (waktuMasuk > batasMalam) menit_telat = waktuMasuk - batasMalam;
         }
       }
 
@@ -222,7 +255,8 @@ function doPost(e) {
     }
     var yr = new Date().getFullYear();
     var defPer = yr + "-01-01|" + yr + "-12-31";
-    sheet.appendRow([usr, data.nama, data.password, "", "Belum", "", 0, "", defPer]);
+    var peran = data.peran || "Satpam";
+    sheet.appendRow([usr, data.nama, data.password, "", "Belum", "", 6, "", defPer, peran]);
     return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
   }
   
@@ -531,11 +565,16 @@ function doPost(e) {
       var rowsCuti = sheetCuti ? sheetCuti.getDataRange().getValues() : [];
       
       var namaSatpam = "";
+      var peran = "Satpam";
       var sheetSatpam = ss.getSheetByName("DataSatpam");
       if(sheetSatpam) {
           var sData = sheetSatpam.getDataRange().getValues();
           for(var i=1; i<sData.length; i++) {
-              if(sData[i][0].toString() === uname) { namaSatpam = sData[i][1].toString().toUpperCase(); break; }
+              if(sData[i][0].toString() === uname) { 
+                  namaSatpam = sData[i][1].toString().toUpperCase(); 
+                  peran = sData[i][9] ? sData[i][9].toString() : "Satpam";
+                  break; 
+              }
           }
       }
       
@@ -597,7 +636,15 @@ function doPost(e) {
         if (isCuti) {
            resRow.sts = jenisCuti;
            resRow.msk = "-"; resRow.plg = "-";
+           if (jenisCuti === "Izin") {
+             resRow.pt = 1; sum.tPot += 1;
+           } else if (jenisCuti === "Sakit (Surat Dokter)" || jenisCuti === "Cuti Tahunan") {
+             resRow.pt = 0;
+           } else {
+             resRow.pt = 0;
+           }
            sum.tHari++;
+           if(resRow.pt > 0) sum.hSanksi++;
         }
         else if (rowP) {
            var mTxt = rowP[3] ? formatJam(rowP[3]) : "";
@@ -606,59 +653,68 @@ function doPost(e) {
            
            if(mTxt) {
               var jM = parseInt(mTxt.split(".")[0]); var mM = parseInt(mTxt.split(".")[1]);
-              var isShiftP = false; var isShiftM = false;
+              var act = jM * 60 + mM;
               
-              if (adaJadwalBulanIni && shiftTerjadwal !== null && shiftTerjadwal !== "") {
-                  if (shiftTerjadwal.startsWith("P")) isShiftP = true;
-                  else if (shiftTerjadwal.startsWith("M")) isShiftM = true;
-                  else isShiftP = true; 
+              if (peran === "Satpam") {
+                 var isShiftP = false; var isShiftM = false;
+                 if (adaJadwalBulanIni && shiftTerjadwal !== null && shiftTerjadwal !== "") {
+                     if (shiftTerjadwal.startsWith("P")) isShiftP = true;
+                     else if (shiftTerjadwal.startsWith("M")) isShiftM = true;
+                     else isShiftP = true; 
+                 } else {
+                     isShiftP = (jM >= 4 && jM < 15);
+                     isShiftM = (jM >= 15 || jM < 4);
+                 }
+                 
+                 if(isShiftP) {
+                    var bts = 7*60;
+                    if(act > bts) resRow.tlt = act - bts;
+                 } else if (isShiftM) {
+                    var bts = 19*60; if(jM < 4) act += 24*60;
+                    if(act > bts) resRow.tlt = act - bts;
+                 }
               } else {
-                  isShiftP = (jM >= 4 && jM < 15);
-                  isShiftM = (jM >= 15 || jM < 4);
+                 var bts = (peran === "Petugas Kebersihan" || peran === "Pengemudi") ? (6 * 60 + 30) : (7 * 60);
+                 if (act > bts) resRow.tlt = act - bts;
               }
               
-              if(isShiftP) {
-                 var bts = 7*60; var act = jM*60 + mM;
-                 if(act > bts) resRow.tlt = act - bts;
-              } else if (isShiftM) {
-                 var bts = 19*60; var act = jM*60 + mM; if(jM < 4) act += 24*60;
-                 if(act > bts) resRow.tlt = act - bts;
-              }
-              
-              if(resRow.tlt > 0 && resRow.tlt <= 30) resRow.pm = 0.5;
-              else if(resRow.tlt > 30 && resRow.tlt <= 60) resRow.pm = 1;
-              else if(resRow.tlt > 60 && resRow.tlt <= 90) resRow.pm = 1.25;
-              else if(resRow.tlt > 90) resRow.pm = 1.5;
+              if(resRow.tlt > 0 && resRow.tlt <= 30) resRow.pm = 0.25;
+              else if(resRow.tlt > 30) resRow.pm = 0.5;
            }
            
            if(!pTxt) {
               resRow.plg = "Lupa Absen";
-              resRow.pp = 1.5;
+              resRow.pp = 3; 
+              resRow.pm = 0; 
               resRow.cpt = 0;
            } else {
               var jK = parseInt(pTxt.split(".")[0]); var mK = parseInt(pTxt.split(".")[1]);
-              var msTxt = rowP[3] ? formatJam(rowP[3]) : "07.00"; 
-              var jsM = parseInt(msTxt.split(".")[0]);
+              var actK = jK * 60 + mK;
               
-              var isSP = false;
-              if (adaJadwalBulanIni && shiftTerjadwal !== null && shiftTerjadwal !== "") {
-                  if (shiftTerjadwal.startsWith("P")) isSP = true;
+              if (peran === "Satpam") {
+                  var msTxt = rowP[3] ? formatJam(rowP[3]) : "07.00"; 
+                  var jsM = parseInt(msTxt.split(".")[0]);
+                  var isSP = false;
+                  if (adaJadwalBulanIni && shiftTerjadwal !== null && shiftTerjadwal !== "") {
+                      if (shiftTerjadwal.startsWith("P")) isSP = true;
+                  } else {
+                      isSP = (jsM >= 4 && jsM < 15);
+                  }
+                  
+                  if(isSP) {
+                     var btsK = 15*60; 
+                     if(actK < btsK && actK > 7*60) resRow.cpt = btsK - actK; 
+                  } else {
+                     var btsK = 7*60 + 24*60; if(jK >= 15) actK += 24*60; 
+                     if(actK < btsK && actK > 19*60) resRow.cpt = btsK - actK;
+                  }
               } else {
-                  isSP = (jsM >= 4 && jsM < 15);
+                  var btsK = 17*60;
+                  if(actK < btsK) resRow.cpt = btsK - actK; 
               }
               
-              if(isSP) {
-                 var btsK = 15*60; var actK = jK*60 + mK;
-                 if(actK < btsK && actK > 7*60) resRow.cpt = btsK - actK; 
-              } else {
-                 var btsK = 7*60 + 24*60; var actK = jK*60 + mK; if(jK >= 15) actK += 24*60; 
-                 if(actK < btsK && actK > 19*60) resRow.cpt = btsK - actK;
-              }
-              
-              if(resRow.cpt > 0 && resRow.cpt <= 30) resRow.pp = 0.5;
-              else if(resRow.cpt > 30 && resRow.cpt <= 60) resRow.pp = 1;
-              else if(resRow.cpt > 60 && resRow.cpt <= 90) resRow.pp = 1.25;
-              else if(resRow.cpt > 90) resRow.pp = 1.5;
+              if(resRow.cpt > 0 && resRow.cpt <= 30) resRow.pp = 0.25;
+              else if(resRow.cpt > 30) resRow.pp = 0.5;
            }
            
            resRow.pt = resRow.pm + resRow.pp;
@@ -670,21 +726,21 @@ function doPost(e) {
            sum.tPot += resRow.pt;
         }
         else {
-           if (adaJadwalBulanIni) {
-               if (shiftTerjadwal && shiftTerjadwal !== "") {
-                   resRow.sts = "Alpha"; resRow.pt = 3; sum.tHari++; sum.tPot += 3;
+           if (peran === "Satpam") {
+               if (adaJadwalBulanIni) {
+                   if (shiftTerjadwal && shiftTerjadwal !== "") {
+                       resRow.sts = "Alpha"; resRow.pt = 3; sum.tHari++; sum.tPot += 3;
+                   } else {
+                       resRow.sts = "Libur"; resRow.msk = "-"; resRow.plg = "-";
+                   }
                } else {
-                   resRow.sts = "Libur"; resRow.msk = "-"; resRow.plg = "-";
+                   resRow.sts = "Alpha"; resRow.pt = 3; sum.tHari++; sum.tPot += 3;
                }
            } else {
-               if(dayOfWeek === 0 || dayOfWeek === 6) {
-                  if(isShift) {
-                     resRow.sts = "Alpha"; resRow.pt = 3; sum.tHari++; sum.tPot += 3;
-                  } else {
-                     resRow.sts = "Libur"; resRow.msk = "-"; resRow.plg = "-";
-                  }
+               if (dayOfWeek === 0 || dayOfWeek === 6) {
+                   resRow.sts = "Libur"; resRow.msk = "-"; resRow.plg = "-";
                } else {
-                  resRow.sts = "Alpha"; resRow.pt = 3; sum.tHari++; sum.tPot += 3;
+                   resRow.sts = "Alpha"; resRow.pt = 3; sum.tHari++; sum.tPot += 3;
                }
            }
         }
