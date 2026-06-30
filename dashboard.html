@@ -240,6 +240,11 @@
             fetch(URL_GAS + '?nama=' + encodeURIComponent(userNama) + '&username=' + encodeURIComponent(userUsername))
                 .then(res => res.json())
                 .then(data => {
+                    if (data.status_user === "not_found") {
+                        alert("Akun Anda telah dihapus oleh Admin atau tidak ditemukan.");
+                        logout();
+                        return;
+                    }
                     document.getElementById('jamMasuk').innerText = data.masuk;
                     document.getElementById('jamKeluar').innerText = data.keluar;
                     lokasiMasukAwal = data.lokasi_masuk || "";

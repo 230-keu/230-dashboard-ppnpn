@@ -117,11 +117,17 @@ function doGet(e) {
     var sheetSatpam = ss.getSheetByName("DataSatpam");
     var rowsSatpam = sheetSatpam.getDataRange().getValues();
     var stat_dna = "Belum";
+    var user_found = false;
     for(var s=1; s<rowsSatpam.length; s++) {
       if(rowsSatpam[s][0].toString() === uname) {
         stat_dna = rowsSatpam[s][4] ? rowsSatpam[s][4].toString() : (rowsSatpam[s][3] ? "Disetujui" : "Belum");
+        user_found = true;
         break;
       }
+    }
+    
+    if (!user_found) {
+      return ContentService.createTextOutput(JSON.stringify({ status_user: "not_found" })).setMimeType(ContentService.MimeType.JSON);
     }
 
     var sheet = ss.getSheetByName("DataPresensi");
