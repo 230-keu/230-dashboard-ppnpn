@@ -133,6 +133,10 @@
                         faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL),
                         faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
                     ]).then(mulaiKamera);
+                } else if (d.message === "User tidak ditemukan!") {
+                    alert("Akun Anda telah dihapus oleh Admin atau tidak ditemukan.");
+                    localStorage.clear();
+                    window.location.href = URL_LOGIN;
                 } else { alert("Wajah belum terdaftar!"); kembaliKeDashboard(); }
             });
         };
