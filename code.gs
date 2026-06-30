@@ -255,8 +255,9 @@ function doPost(e) {
     }
     var yr = new Date().getFullYear();
     var defPer = yr + "-01-01|" + yr + "-12-31";
-    var peran = data.peran || "Satpam";
-    sheet.appendRow([usr, data.nama, data.password, "", "Belum", "", 6, "", defPer, peran]);
+    var peran = data.peran !== undefined ? data.peran : "";
+    var jatah = data.peran !== undefined ? 6 : 0;
+    sheet.appendRow([usr, data.nama, data.password, "", "Belum", "", jatah, "", defPer, peran]);
     return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
   }
   
@@ -265,6 +266,18 @@ function doPost(e) {
     var rows = sheet.getDataRange().getValues();
     for (var i = 1; i < rows.length; i++) {
       if (rows[i][0].toString() === data.username) { sheet.deleteRow(i + 1); return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON); }
+    }
+    return ContentService.createTextOutput(JSON.stringify({status: "error", message: "User tidak ditemukan!"})).setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  else if (action === "update_peran") {
+    var sheet = ss.getSheetByName("DataSatpam");
+    var rows = sheet.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString() === data.username) {
+        sheet.getRange(i + 1, 10).setValue(data.peran);
+        return ContentService.createTextOutput(JSON.stringify({status: "success"})).setMimeType(ContentService.MimeType.JSON);
+      }
     }
     return ContentService.createTextOutput(JSON.stringify({status: "error", message: "User tidak ditemukan!"})).setMimeType(ContentService.MimeType.JSON);
   }
